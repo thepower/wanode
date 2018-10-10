@@ -1,0 +1,9 @@
+{application, wanode,
+ [
+  {description, "wanode VM"},
+  {vsn, "1.0.0"},
+  {modules, []},
+  {registered, []},
+  {applications, []},
+  {env, []}
+ ]}.
