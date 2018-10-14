@@ -2292,6 +2292,7 @@ bool invoke(Module * m, char *entry, size_t argc, StackValue *argv) {
     fidx = get_export_fidx(m, entry);
   }
   if (fidx == -1) {
+    warn("Function not found\n");
     return false;
   }
   type = m->functions[fidx].type;

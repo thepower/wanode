@@ -20,7 +20,7 @@ typedef struct {
   msgpack_unpacked utx;
 
   msgpack_object *code;
-  msgpack_object *method;
+  char *method;
   msgpack_object *args;
   msgpack_object *gas;
 

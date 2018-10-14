@@ -20,25 +20,25 @@
 }
 
 #if TRACE
-#  define trace(...) { /*fprintf(stderr, "T %10s:%4d: ", __FILE__, __LINE__);*/ fprintf(stderr, __VA_ARGS__); fflush(NULL); }
+#  define trace(...) { fprintf(stderr, "T %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(NULL); }
 #else
 #  define trace(...) ;
 #endif
 
 #if DEBUG
-#  define debug(...) { /*fprintf(stderr, "D %10s:%4d: ", __FILE__, __LINE__);*/ fprintf(stderr, __VA_ARGS__); fflush(NULL); }
+#  define debug(...) { fprintf(stderr, "D %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(NULL); }
 #else
 #  define debug(...) ;
 #endif
 
 #if INFO
-#  define info(...) { /*fprintf(stderr, "I %10s:%4d: ", __FILE__, __LINE__);*/ fprintf(stderr, __VA_ARGS__); fflush(NULL); }
+#  define info(...) { fprintf(stderr, "I %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(NULL); }
 #else
 #  define info(...) ;
 #endif
 
 #if WARN
-#  define warn(...) { /*fprintf(stderr, "W %10s:%4d: ", __FILE__, __LINE__);*/ fprintf(stderr, __VA_ARGS__); fflush(NULL); }
+#  define warn(...) { fprintf(stderr, "W %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(NULL); }
 #else
 #  define warn(...) ;
 #endif

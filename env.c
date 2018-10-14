@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "util.h"
 #include "env.h"
 #include "storage.h"
@@ -6,106 +8,60 @@
 #define HTONLL(x) ((1==htonl(1)) ? (x) : (((uint64_t)htonl((x) & 0xFFFFFFFFUL)) << 32) | htonl((uint32_t)((x) >> 32)))
 #define NTOHLL(x) ((1==ntohl(1)) ? (x) : (((uint64_t)ntohl((x) & 0xFFFFFFFFUL)) << 32) | ntohl((uint32_t)((x) >> 32)))
 
+#define STACK(x) (m->stack[m->sp - x].value.int32)
+
+uint8_t *get_mem_ptr(Module *m, int32_t offset, int32_t size) {
+  int32_t max_offset = m->memory.pages * pow(2, 16);
+  if ( (offset+size) >= max_offset ){
+    warn("Memory owerflow\n");
+    return NULL;
+  }
+  return m->memory.bytes + offset;
+}
+
+char Dbuf[1024];
+int Dpos = 0;
+
+void exported_flush(Module *m){
+  (void)m;
+  debug("CONTRACT SAID: '%s'\n", Dbuf);
+  Dpos = 0;
+  Dbuf[0] = 0;
+}
+
+void exported_debug(Module *m){
+  size_t len = STACK(1);
+  char *str = (char*)get_mem_ptr(m, STACK(0), len);
+  Dpos += len;
+  if (Dpos + 1 > 1024){
+    exported_flush(m);
+  }
+  strncat(Dbuf, str, len);
+  m->sp -= 2;
+}
+
 void exported_read(Module *m){
   exec_data *d = (exec_data*)m->extra;
 
-  int a1 = m->stack[m->sp - 1].value.int32;
-  int a2 = m->stack[m->sp - 0].value.int32;
+  uint8_t *key = get_mem_ptr(m, STACK(1), KV_SIZE );
+  uint8_t *val = get_mem_ptr(m, STACK(0), KV_SIZE );
 
-  storage_read(d->s, m->memory.bytes + a1, m->memory.bytes + a2);
+  storage_read(d->s, key, val);
   m->sp -= 2;
 }
 
 void exported_write(Module *m){
   exec_data *d = (exec_data*)m->extra;
 
-  int a1 = m->stack[m->sp - 1].value.int32;
-  int a2 = m->stack[m->sp - 0].value.int32;
+  uint8_t *key = get_mem_ptr(m, STACK(1), KV_SIZE );
+  uint8_t *val = get_mem_ptr(m, STACK(0), KV_SIZE );
 
-  storage_write(d->s, m->memory.bytes + a1, m->memory.bytes + a2);
+  storage_write(d->s, key, val);
   m->sp -= 2;
-}
-
-
-void exported_get_param(Module *m){
-  exec_data *d = (exec_data*)m->extra;
-
-  int param = m->stack[m->sp - 2].value.int32;
-  size_t len = m->stack[m->sp - 1].value.int32;
-  uint8_t *ptr = m->memory.bytes + m->stack[m->sp - 0].value.int32;
-
-  msgpack_object *obj = &d->args->via.array.ptr[param];
-  size_t size = msgpack_sizeof(obj);
-  if (len != size){
-    warn("Param size mismatch on param #%d (%zu vs %zu)!\n", param, len, size);
-  }
-  uint8_t v;
-
-  // TODO: check len
-  switch(obj->type) {
-    case MSGPACK_OBJECT_NIL:
-      memset(ptr, 0, size);
-      debug("write NIL\n");
-      break;
-    case MSGPACK_OBJECT_BOOLEAN:
-      v = obj->via.boolean ? 1 : 0;
-      memset(ptr, v, size);
-      debug("write bool %zu\n", size);
-      break;
-
-    case MSGPACK_OBJECT_POSITIVE_INTEGER:
-      obj->via.u64 = HTONLL(obj->via.u64);
-      memcpy(ptr, &obj->via.u64, size);
-      debug("write int %zu\n", size);
-      break;
-
-    case MSGPACK_OBJECT_NEGATIVE_INTEGER:
-      obj->via.i64 = HTONLL(obj->via.i64);
-      memcpy(ptr, &obj->via.i64, size);
-      debug("write uint %zu\n", size);
-      break;
-
-    case MSGPACK_OBJECT_STR:
-      memcpy(ptr, obj->via.str.ptr, size);
-      debug("write str %zu\n", size);
-      break;
-
-    case MSGPACK_OBJECT_BIN:
-      memcpy(ptr, obj->via.bin.ptr, size);
-      debug("write bin %zu\n", size);
-      break;
-    default:
-      break;
-  }
-
-  m->sp -= 3;
-}
-
-void exported_set_return(Module *m){
-  (void)m;
-}
-
-void exported_get_sender(Module *m){
-  exec_data *d = (exec_data*)m->extra;
-
-  uint8_t *ptr = m->memory.bytes + m->stack[m->sp - 0].value.int32;
-  msgpack_object *s = msgpack_get_value(d->tx, "f");
-  memcpy(ptr, s->via.bin.ptr, s->via.bin.size);
-  m->sp -= 1;
-}
-
-void exported_get_receiver(Module *m){
-  exec_data *d = (exec_data*)m->extra;
-
-  uint8_t *ptr = m->memory.bytes + m->stack[m->sp - 0].value.int32;
-  msgpack_object *s = msgpack_get_value(d->tx, "to");
-  memcpy(ptr, s->via.bin.ptr, s->via.bin.size);
-  m->sp -= 1;
 }
 
 void exported_get_tx_raw_size(Module *m){
   exec_data *d = (exec_data*)m->extra;
-
   m->sp += 1;
   StackValue *s = &m->stack[m->sp];
   s->value_type = I32;
@@ -131,15 +87,15 @@ typedef struct ExportedFunc {
 } ExportedFunc;
 
 ExportedFunc FUNCS[] = {
+  {"env", "debug", (void*)exported_debug},
+  {"env", "flush", (void*)exported_flush},
+
   {"env", "storage_read", (void*)exported_read},
   {"env", "storage_write", (void*)exported_write},
-  {"env", "get_param", (void*)exported_get_param},
-  {"env", "set_return", (void*)exported_set_return},
-  {"env", "get_sender", (void*)exported_get_sender},
-  {"env", "get_receiver", (void*)exported_get_receiver},
+
   {"env", "get_tx_raw_size", (void*)exported_get_tx_raw_size},
   {"env", "get_tx_raw", (void*)exported_get_tx_raw},
-  {"env", "make_tx", (void*)exported_make_tx},
+
   {NULL, NULL, NULL},
 };
 
