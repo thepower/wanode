@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   char *port = "5555";
   int c;
 
-  while ((c = getopt(argc, argv, "h:p:")) != -1) {
+  while ((c = getopt(argc, argv, "h:p:l:")) != -1) {
     switch (c) {
     case 'h':
       host = optarg;
@@ -50,8 +50,11 @@ int main(int argc, char **argv) {
     case 'p':
       port = optarg;
       break;
+    case 'l':
+      freopen(optarg, "w", stderr);
+      break;
     default:
-      fprintf(stderr, "Usage: %s [-h host] [-p port]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-h host] [-p port] [-l logfile]\n", argv[0]);
       exit(1);
     }
   }

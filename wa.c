@@ -891,6 +891,7 @@ bool interpret(Module * m) {
                                   prev_pages * pow(2, 16),
                                   m->memory.pages * pow(2, 16),
                                   sizeof(uint32_t), "Module->memory.bytes");
+      debug("GROW MEMORY, now  pages = %u\n", m->memory.pages);
       continue;
 
       // Memory load operators
@@ -1869,6 +1870,7 @@ Module *load_module(uint8_t *bytes, size_t code_len, Options options) {
         error("Ignoring unknown custom section '%s'\n", name);
       }
       pos = end_pos;
+      free(name);
       break;
     case 1:
       trace("Parsing Type(1) section (length: 0x%x)\n", slen);

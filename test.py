@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+import inspect
 import msgpack
 import socket
 import struct
 import subprocess
+import sys
+import time
+import unittest
 
 def loads(*args, **kwargs):
   kwargs['encoding'] = 'utf8'
@@ -19,7 +23,14 @@ def read(path):
 
 
 class VM:
-  def __init__(self, conn):
+  def __init__(self):
+    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.s.bind(('127.0.0.1', 0))
+    self.port = self.s.getsockname()[1]
+    self.s.listen()
+    self.sub = subprocess.Popen(["valgrind", "-v", "--leak-check=full", "./wanode", "-p", str(self.port)])
+    #self.sub = subprocess.Popen(["./wanode", "-p", str(self.port)])
+    conn, addr = self.s.accept()
     self.c = conn
     self.seq = 0
     self.state = {}
@@ -34,6 +45,12 @@ class VM:
           break
       else:
         continue
+
+  def close(self):
+    self.send_quit()
+    self.sub.wait()
+    self.c.close()
+    self.s.close()
 
   def read(self):
     data = self.c.recv(4)
@@ -83,50 +100,84 @@ class VM:
       None: 'quit',
     })
 
-  def send_tx(self, kind, call):
-    self.write_req( {
+  def make_ledger(self, bal, code=None):
+    l = { 'amount': bal }
+    if code:
+      l['code'] = code
+    if self.state:
+      l['state'] = dumps(self.state)
+    return l
+
+  def make_tx(self, fr=b'fromaddr', to=b'totoaddr', kind=16, payload=[], call=None, code=None):
+    t = {
+      'f': fr,
+      'to': to,
+      'k': kind,
+      'p': payload,
+      's': 1,
+      't': int(time.time())
+    }
+    if call:
+      t['c'] = call
+
+    if code:
+      t['e'] = {'code': code}
+    return t
+
+  def send_tx(self, ledger, tx=None, call=None, gas=1000000000):
+    r = {
       None: 'exec',
-      'gas': 1111111111,
-      'ledger': dumps({'code': bytearray(read(CODE_PATH)), 'state': dumps(self.state)}),
-      'tx': dumps({'ver': 2, 'body': dumps({
-        'k': kind,
-        'f': b'\x80\x00 \x00\x02\x00\x00\x03',
-        'p': [[0, 'XXX', 10], [1, 'FEE', 20]],
-        'to': b'\x80\x00 \x00\x02\x00\x00\x05',
-        's': 5,
-        't': 1530106238743,
-        'c': call,
-        'e': {'code': bytearray(read(CODE_PATH))}
-    })})})
+      'gas': gas,
+      'ledger': dumps(ledger),
+      'tx': dumps({'ver': 2, 'body': dumps(tx)})
+    }
+    if call:
+      r['c'] = call
+
+    self.write_req(r)
     seq, data = self.read()
     if 'state' in data:
       self.state = loads(data['state'])
     return data
 
 
-def do_tests(conn):
-  vm = VM(conn)
+class TestStringMethods(unittest.TestCase):
+  def setUp(self):
+    self.vm = VM()
+    self.code = read("../rust/vova2/target/wasm32-unknown-unknown/release/vova2.wasm")
 
-  vm.state = {}
-  vm.send_tx(18, ["init", [8]])
-  vm.send_tx(16, ["inc", [1]])
-  vm.send_tx(16, ["inc1", []])
-  vm.send_tx(16, ["dec", [3]])
-  vm.send_quit()
+  def tearDown(self):
+    self.vm.close()
+
+  def test_exec(self):
+    vm = self.vm
+    vm.state = {}
+    # ret = vm.send_tx(
+        # vm.make_ledger({'SK': 1000}),
+        # vm.make_tx( kind=18,
+                    # payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    # call=['asd', [5, -3, [3,4], "Test"]],
+                    # code=self.code))
+
+    ret = vm.send_tx(
+        vm.make_ledger({'SK': 1000}, code=self.code),
+        vm.make_tx( kind=16,
+                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    call=['save_in_storage', []],
+                    code=self.code))
+    self.assertEqual(ret[None], 'exec', 'Non-Exec reply')
+    self.assertNotIn('err', ret, "Error in response")
+
+
+    ret = vm.send_tx(
+        vm.make_ledger({'SK': 1000}, code=self.code),
+        vm.make_tx( kind=16,
+                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    call=['load_from_storage', []],
+                    code=self.code))
+    self.assertEqual(["asd", "zxc"], ret['ret'])
+
 
 
 if __name__ == '__main__':
-  HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-
-  import sys
-  CODE_PATH = sys.argv[1]
-
-  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, 0))
-    PORT = s.getsockname()[1]
-    s.listen()
-    subprocess.Popen(["./wanode","-h", HOST, "-p", str(PORT)])
-    conn, addr = s.accept()
-    with conn:
-      print('Connected by', addr)
-      do_tests(conn)
+  unittest.main()

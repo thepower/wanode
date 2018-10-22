@@ -3,12 +3,6 @@
 #include "storage.h"
 
 typedef struct {
-  int type;
-  size_t size;
-  char *ptr;
-} tlv;
-
-typedef struct {
   msgpack_object *ledger;
   msgpack_unpacked uledger;
 
@@ -26,10 +20,14 @@ typedef struct {
 
   storage_item **s;
 
-  size_t new_txs_count;
-  tlv new_txs[16];
-  size_t ret_count;
-  tlv ret[16];
+
+  msgpack_sbuffer *tx_repack;
+  msgpack_sbuffer *args_repack;
+
+
+  char *ret_copy;
+  msgpack_object *ret;
+  msgpack_unpacked uret;
 } exec_data;
 
 void do_exec(app_state *cfg, in_message *msg);

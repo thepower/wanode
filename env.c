@@ -43,42 +43,170 @@ void exported_debug(Module *m){
 void exported_read(Module *m){
   exec_data *d = (exec_data*)m->extra;
 
-  uint8_t *key = get_mem_ptr(m, STACK(1), KV_SIZE );
-  uint8_t *val = get_mem_ptr(m, STACK(0), KV_SIZE );
+  size_t key_size = STACK(3);
+  uint8_t *key = get_mem_ptr(m, STACK(2), key_size );
+  size_t value_size = STACK(1);
+  uint8_t *val = get_mem_ptr(m, STACK(0), value_size );
 
-  storage_read(d->s, key, val);
-  m->sp -= 2;
+  storage_read(d->s, key_size, key, value_size, val);
+  m->sp -= 4;
 }
 
 void exported_write(Module *m){
   exec_data *d = (exec_data*)m->extra;
 
-  uint8_t *key = get_mem_ptr(m, STACK(1), KV_SIZE );
-  uint8_t *val = get_mem_ptr(m, STACK(0), KV_SIZE );
+  size_t key_size = STACK(3);
+  uint8_t *key = get_mem_ptr(m, STACK(2), key_size );
+  size_t value_size = STACK(1);
+  uint8_t *val = get_mem_ptr(m, STACK(0), value_size );
 
-  storage_write(d->s, key, val);
+  storage_write(d->s, key_size, key, value_size, val);
+  m->sp -= 4;
+}
+
+void exported_get_value_size(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+
+  size_t key_size = STACK(1);
+  uint8_t *key = get_mem_ptr(m, STACK(0), key_size );
   m->sp -= 2;
+
+  size_t value_size = storage_value_size(d->s, key_size, key);
+
+  m->sp += 1;
+  StackValue *s = &m->stack[m->sp];
+  s->value_type = I32;
+  s->value.int32 = value_size;
+  debug("Value size %zu\n", value_size);
+}
+
+void tx_repack(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  msgpack_object *tx = d->tx;
+
+  if( tx == NULL || tx->type != MSGPACK_OBJECT_MAP ){
+    return;
+  }
+
+  if(d->tx_repack != NULL ){
+    return;
+  }
+
+  d->tx_repack = msgpack_sbuffer_new();
+  msgpack_packer *pk = msgpack_packer_new(d->tx_repack, msgpack_sbuffer_write);
+
+  msgpack_pack_map(pk, 5);
+
+  msgpack_repack(pk, tx, "p");
+  msgpack_repack(pk, tx, "f");
+  msgpack_repack(pk, tx, "to");
+  msgpack_repack(pk, tx, "k");
+  msgpack_repack(pk, tx, "t");
+
+  msgpack_packer_free(pk);
 }
 
 void exported_get_tx_raw_size(Module *m){
   exec_data *d = (exec_data*)m->extra;
+  tx_repack(m);
+
   m->sp += 1;
   StackValue *s = &m->stack[m->sp];
   s->value_type = I32;
-  s->value.int32 = d->tx_body->via.bin.size;
+  if(d->tx_repack){
+    s->value.int32 = d->tx_repack->size;
+  }else{
+    s->value.int32 = 0;
+  }
 }
 
 void exported_get_tx_raw(Module *m){
   exec_data *d = (exec_data*)m->extra;
+  tx_repack(m);
 
-  uint8_t *ptr = m->memory.bytes + m->stack[m->sp - 0].value.int32;
-  memcpy(ptr, d->tx_body->via.bin.ptr, d->tx_body->via.bin.size);
-  m->sp -= 1;
+  if(d->tx_repack == NULL){
+    STACK(0) = 0;
+    return;
+  }
+
+  uint8_t *ptr = get_mem_ptr(m, STACK(0), d->tx_repack->size);
+  if(ptr){
+    STACK(0) = 1;
+    memcpy(ptr, d->tx_repack->data, d->tx_repack->size);
+  }
 }
 
-void exported_make_tx(Module *m){
-  (void)m;
+void args_repack(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  msgpack_object *args = d->args;
+
+  if( args == NULL || args->type != MSGPACK_OBJECT_ARRAY ){
+    return;
+  }
+
+  if(d->args_repack != NULL ){
+    return;
+  }
+
+  d->args_repack = msgpack_sbuffer_new();
+  msgpack_packer *pk = msgpack_packer_new(d->args_repack, msgpack_sbuffer_write);
+
+  msgpack_pack(pk, args) ;
+
+  msgpack_packer_free(pk);
 }
+
+void exported_get_args_raw_size(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  args_repack(m);
+
+  m->sp += 1;
+  StackValue *s = &m->stack[m->sp];
+  s->value_type = I32;
+  if(d->args_repack){
+    debug("Args RAW size = %zu\n", d->args_repack->size);
+    s->value.int32 = d->args_repack->size;
+  }else{
+    debug("Args RAW size = 0\n");
+    s->value.int32 = 0;
+  }
+}
+
+void exported_get_args_raw(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  args_repack(m);
+
+  if(d->args_repack == NULL){
+    STACK(0) = 0;
+    return;
+  }
+
+  uint8_t *ptr = get_mem_ptr(m, STACK(0), d->args_repack->size);
+  if(ptr){
+    STACK(0) = 1;
+    memcpy(ptr, d->args_repack->data, d->args_repack->size);
+  }
+}
+
+void exported_set_return(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  size_t len = STACK(1);
+  char *ret = (char*)get_mem_ptr(m, STACK(0), len);
+  m->sp -= 2;
+
+  if(ret){
+    d->ret_copy = malloc(len);
+    memcpy(d->ret_copy, ret, len);
+  }
+
+  if (msgpack_unpack_next(&d->uret, d->ret_copy, len, NULL) != MSGPACK_UNPACK_SUCCESS) {
+    d->ret = NULL;
+  }else{
+    d->ret = &d->uret.data;
+  }
+}
+
+
 
 typedef struct ExportedFunc {
   char *module;
@@ -92,9 +220,15 @@ ExportedFunc FUNCS[] = {
 
   {"env", "storage_read", (void*)exported_read},
   {"env", "storage_write", (void*)exported_write},
+  {"env", "storage_value_size", (void*)exported_get_value_size},
 
   {"env", "get_tx_raw_size", (void*)exported_get_tx_raw_size},
   {"env", "get_tx_raw", (void*)exported_get_tx_raw},
+
+  {"env", "get_args_raw_size", (void*)exported_get_args_raw_size},
+  {"env", "get_args_raw", (void*)exported_get_args_raw},
+
+  {"env", "set_return", (void*)exported_set_return},
 
   {NULL, NULL, NULL},
 };

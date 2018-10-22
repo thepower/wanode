@@ -18,7 +18,7 @@ wanode: msgpack-c/libmsgpackc.a $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(foreach l,$(LIBS),-l$(l)) msgpack-c/libmsgpackc.a
 
 test: test.py wanode
-	./test.py ../rust/vova2/target/wasm32-unknown-unknown/release/vova2.wasm
+	./test.py
 
 .PHONY:
 clean:

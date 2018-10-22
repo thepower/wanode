@@ -13,10 +13,23 @@ void exec_data_init(exec_data *d){
 }
 
 void exec_data_destroy(exec_data *d){
+  if(d->method){
+    free(d->method);
+  }
+  if(d->ret_copy){
+    free(d->ret_copy);
+  }
+  if(d->tx_repack){
+    msgpack_sbuffer_free(d->tx_repack);
+  }
+  if(d->args_repack){
+    msgpack_sbuffer_free(d->args_repack);
+  }
   storage_destroy(&d->s);
   msgpack_unpacked_destroy(&d->utx_container);
   msgpack_unpacked_destroy(&d->utx);
   msgpack_unpacked_destroy(&d->uledger);
+  msgpack_unpacked_destroy(&d->uret);
 }
 
 bool parse_exec_data(in_message *msg, exec_data *d){
@@ -175,7 +188,8 @@ bool parse_exec_data(in_message *msg, exec_data *d){
           if(d->method){
             free(d->method);
           }
-          d->method = "init";
+          d->method = calloc(5, 1);
+          strncat(d->method, "init", 4);
           break;
           default:
             debug("Skipping non-interesting tx kind\n");
@@ -193,18 +207,6 @@ bool parse_exec_data(in_message *msg, exec_data *d){
     debug("Skipping response message\n");
   }
   return false;
-}
-
-StackValue *make_args(Module *m, msgpack_object *args) {
-  (void)m;
-  StackValue *s = (StackValue*)acalloc(args->via.array.size, sizeof(StackValue), "Arguments list");
-  for(uint32_t i=0; i< args->via.array.size; ++i){
-    msgpack_object *arg = &args->via.array.ptr[i];
-    s[i].value_type = I32;
-    s[i].value.int32 = msgpack_sizeof(arg);
-    debug("Arg %u length %d\n", i, s[i].value.int32);
-  }
-  return s;
 }
 
 void do_exec(app_state *cfg, in_message *msg){
@@ -232,9 +234,7 @@ void do_exec(app_state *cfg, in_message *msg){
     strncat(name, d.method, 1024);
     strncat(name, "_wrapper", 8);
 
-    StackValue *s = make_args(m, d.args);
-    bool res = invoke(m, name, d.args->via.array.size, s);
-    free(s);
+    bool res = invoke(m, name, 0, NULL);
     free(name);
 
     if(res){
@@ -266,19 +266,8 @@ void do_exec(app_state *cfg, in_message *msg){
 
       msgpack_pack_str(&pk, 3);
       msgpack_pack_str_body(&pk, "ret", 3);
-      if (m->sp >= 0) {
-        StackValue *ret = &m->stack[m->sp];
-        switch(ret->value_type){
-          case I32:
-            msgpack_pack_fix_int32(&pk, ret->value.int32);
-            break;
-          case I64:
-            msgpack_pack_fix_int64(&pk, ret->value.int64);
-            break;
-          default:
-            msgpack_pack_nil(&pk);
-            break;
-        }
+      if(d.ret){
+        msgpack_pack(&pk, d.ret);
       }else{
         msgpack_pack_nil(&pk);
       }

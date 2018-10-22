@@ -7,14 +7,11 @@
 
 #include <msgpack.h>
 
-#define FATAL(...) { \
-    fprintf(stderr, "Error(%s:%d): ", __FILE__, __LINE__); \
-    fprintf(stderr, __VA_ARGS__); exit(1); \
-}
+#define FATAL(...) { fprintf(stderr, "F %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); exit(1); }
 
 #define ASSERT(exp, ...) { \
     if (! (exp)) { \
-        fprintf(stderr, "Assert Failed (%s:%d): ", __FILE__, __LINE__); \
+        fprintf(stderr, "A %10s:%4d: ", __FILE__, __LINE__); \
         fprintf(stderr, __VA_ARGS__); exit(1); \
     } \
 }
@@ -29,6 +26,12 @@
 #  define debug(...) { fprintf(stderr, "D %10s:%4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fflush(NULL); }
 #else
 #  define debug(...) ;
+#endif
+
+#if DEBUG
+#  define debug_raw(...) { fprintf(stderr, __VA_ARGS__); fflush(NULL); }
+#else
+#  define debug_raw(...) ;
 #endif
 
 #if INFO
@@ -78,3 +81,5 @@ void _dump_object(msgpack_object * obj);
 int32_t msgpack_strcmp(msgpack_object * s1, char *s2);
 msgpack_object *msgpack_get_value(msgpack_object * obj, char *key);
 size_t msgpack_sizeof(msgpack_object *obj);
+void msgpack_pack(msgpack_packer *pk, msgpack_object *value);
+void msgpack_repack(msgpack_packer *pk, msgpack_object *value, char* key);
