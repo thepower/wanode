@@ -34,7 +34,7 @@ void exec_data_destroy(exec_data *d){
 
 bool parse_exec_data(in_message *msg, exec_data *d){
   msgpack_object *obj;
-  msgpack_object *ledger, *state, *txc, *tx, *call, *method;
+  msgpack_object *ledger, *state, *balance, *txc, *tx, *call, *method;
   msgpack_unpack_return ret;
 
   if((msg->seq & 0x01) == 0) {
@@ -54,6 +54,13 @@ bool parse_exec_data(in_message *msg, exec_data *d){
       }
       debug("Ledger unpacked\n");
       d->ledger = &d->uledger.data;
+
+      balance = msgpack_get_value(d->ledger, "amount");
+      if (balance == NULL || balance->type != MSGPACK_OBJECT_MAP){
+        warn("Ledger without state\n");
+      } else {
+        d->balance = balance;
+      }
 
       state = msgpack_get_value(d->ledger, "state");
       if (state == NULL || state->type != MSGPACK_OBJECT_BIN){
@@ -93,9 +100,6 @@ bool parse_exec_data(in_message *msg, exec_data *d){
           debug("Invalid args type\n");
           return false;
         }
-
-
-
       }else{
         // TX container present
         ret = msgpack_unpack_next(&d->utx_container, txc->via.bin.ptr, txc->via.bin.size, NULL);
@@ -141,8 +145,8 @@ bool parse_exec_data(in_message *msg, exec_data *d){
         debug("Tx kind = %ld\n", kind);
 
         call = msgpack_get_value(d->tx, "c");
-        if( call == NULL || call->type != MSGPACK_OBJECT_ARRAY) {
-          debug("TXless call without call parameters\n");
+        if( call == NULL || call->type != MSGPACK_OBJECT_ARRAY ) {
+          debug("TX call without call parameters\n");
           return false;
         }
         method = &call->via.array.ptr[0];

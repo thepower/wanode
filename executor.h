@@ -6,6 +6,8 @@ typedef struct {
   msgpack_object *ledger;
   msgpack_unpacked uledger;
 
+  msgpack_object *balance;
+
   msgpack_object *tx_container;
   msgpack_unpacked utx_container;
 
@@ -23,6 +25,7 @@ typedef struct {
 
   msgpack_sbuffer *tx_repack;
   msgpack_sbuffer *args_repack;
+  msgpack_sbuffer *balance_repack;
 
 
   char *ret_copy;

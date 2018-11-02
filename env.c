@@ -189,6 +189,66 @@ void exported_get_args_raw(Module *m){
   }
 }
 
+void balance_repack(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  msgpack_object *balance = d->balance;
+
+  if( balance == NULL || balance->type != MSGPACK_OBJECT_MAP ){
+    debug("Balance is NULL or not MAP\n");
+    return;
+  }
+
+  if(d->balance_repack != NULL ){
+    debug("Balance already repacked\n");
+    return;
+  }
+
+  d->balance_repack = msgpack_sbuffer_new();
+  msgpack_packer *pk = msgpack_packer_new(d->balance_repack, msgpack_sbuffer_write);
+
+  msgpack_pack(pk, balance) ;
+
+  msgpack_packer_free(pk);
+
+  debug("Balance repacked = ");
+
+  for(size_t c = 0; c < d->balance_repack->size; ++c)
+    debug_raw("\\x%02X", d->balance_repack->data[c]);
+  debug_raw("\n");
+}
+
+void exported_get_balance_raw_size(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  balance_repack(m);
+
+  m->sp += 1;
+  StackValue *s = &m->stack[m->sp];
+  s->value_type = I32;
+  if(d->balance_repack){
+    debug("balance RAW size = %zu\n", d->balance_repack->size);
+    s->value.int32 = d->balance_repack->size;
+  }else{
+    debug("balance RAW size = 0\n");
+    s->value.int32 = 0;
+  }
+}
+
+void exported_get_balance_raw(Module *m){
+  exec_data *d = (exec_data*)m->extra;
+  balance_repack(m);
+
+  if(d->balance_repack == NULL){
+    STACK(0) = 0;
+    return;
+  }
+
+  uint8_t *ptr = get_mem_ptr(m, STACK(0), d->balance_repack->size);
+  if(ptr){
+    STACK(0) = 1;
+    memcpy(ptr, d->balance_repack->data, d->balance_repack->size);
+  }
+}
+
 void exported_set_return(Module *m){
   exec_data *d = (exec_data*)m->extra;
   size_t len = STACK(1);
@@ -219,15 +279,18 @@ ExportedFunc FUNCS[] = {
   {"env", "debug", (void*)exported_debug},
   {"env", "flush", (void*)exported_flush},
 
-  {"env", "storage_read", (void*)exported_read},
   {"env", "storage_write", (void*)exported_write},
   {"env", "storage_value_size", (void*)exported_get_value_size},
+  {"env", "storage_read", (void*)exported_read},
 
   {"env", "get_tx_raw_size", (void*)exported_get_tx_raw_size},
   {"env", "get_tx_raw", (void*)exported_get_tx_raw},
 
   {"env", "get_args_raw_size", (void*)exported_get_args_raw_size},
   {"env", "get_args_raw", (void*)exported_get_args_raw},
+
+  {"env", "get_balance_raw_size", (void*)exported_get_balance_raw_size},
+  {"env", "get_balance_raw", (void*)exported_get_balance_raw},
 
   {"env", "set_return", (void*)exported_set_return},
 

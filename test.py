@@ -28,8 +28,8 @@ class VM:
     self.s.bind(('127.0.0.1', 0))
     self.port = self.s.getsockname()[1]
     self.s.listen()
-    self.sub = subprocess.Popen(["valgrind", "-v", "--leak-check=full", "./wanode", "-p", str(self.port)])
-    #self.sub = subprocess.Popen(["./wanode", "-p", str(self.port)])
+    #self.sub = subprocess.Popen(["valgrind", "-v", "--leak-check=full", "./wanode", "-p", str(self.port)])
+    self.sub = subprocess.Popen(["./wanode", "-p", str(self.port)])
     conn, addr = self.s.accept()
     self.c = conn
     self.seq = 0
@@ -100,8 +100,12 @@ class VM:
       None: 'quit',
     })
 
-  def make_ledger(self, bal, code=None):
-    l = { 'amount': bal }
+  def make_ledger(self, bal = None, code=None):
+    l = {}
+    if bal:
+      l['amount'] = bal
+    else:
+      l['amount'] = {b'SK': 666, b'TST': 777}
     if code:
       l['code'] = code
     if self.state:
@@ -144,7 +148,7 @@ class VM:
 class TestStringMethods(unittest.TestCase):
   def setUp(self):
     self.vm = VM()
-    self.code = read("../rust/vova2/target/wasm32-unknown-unknown/release/vova2.wasm")
+    self.code = read("../rust/test-pair/target/wasm32-unknown-unknown/release/test_pair.wasm")
 
   def tearDown(self):
     self.vm.close()
@@ -152,30 +156,31 @@ class TestStringMethods(unittest.TestCase):
   def test_exec(self):
     vm = self.vm
     vm.state = {}
-    # ret = vm.send_tx(
-        # vm.make_ledger({'SK': 1000}),
-        # vm.make_tx( kind=18,
-                    # payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    # call=['asd', [5, -3, [3,4], "Test"]],
-                    # code=self.code))
+    ret = vm.send_tx(
+        vm.make_ledger(code=self.code),
+        vm.make_tx( kind=18,
+                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    call=['init', []],
+                    code=self.code))
 
     ret = vm.send_tx(
-        vm.make_ledger({'SK': 1000}, code=self.code),
+        vm.make_ledger(code=self.code),
         vm.make_tx( kind=16,
                     payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    call=['save_in_storage', []],
+                    call=['save_data', [{"q1": "a1", "q2": "a2"}],],
                     code=self.code))
+
     self.assertEqual(ret[None], 'exec', 'Non-Exec reply')
     self.assertNotIn('err', ret, "Error in response")
 
 
-    ret = vm.send_tx(
-        vm.make_ledger({'SK': 1000}, code=self.code),
-        vm.make_tx( kind=16,
-                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    call=['load_from_storage', []],
-                    code=self.code))
-    self.assertEqual(["asd", "zxc"], ret['ret'])
+    # ret = vm.send_tx(
+        # vm.make_ledger({'SK': 1000}, code=self.code),
+        # vm.make_tx( kind=16,
+                    # payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    # call=['load_from_storage', []],
+                    # code=self.code))
+    # self.assertEqual(["asd", "zxc"], ret['ret'])
 
 
 
