@@ -12,8 +12,8 @@
 
 uint8_t *get_mem_ptr(Module *m, int32_t offset, int32_t size) {
   int32_t max_offset = m->memory.pages * pow(2, 16);
-  if ( (offset+size) >= max_offset ){
-    warn("Memory owerflow\n");
+  if ( (offset+size) > max_offset ){
+    warn("Memory owerflow, %d %d %d\n", offset, size, max_offset);
     return NULL;
   }
   return m->memory.bytes + offset;
@@ -118,6 +118,7 @@ void exported_get_tx_raw_size(Module *m){
   }else{
     s->value.int32 = 0;
   }
+  debug("tx_raw_size = %d\n", s->value.int32);
 }
 
 void exported_get_tx_raw(Module *m){
