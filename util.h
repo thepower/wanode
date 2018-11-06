@@ -50,36 +50,54 @@
 
 #define error(...) fprintf(stderr, __VA_ARGS__);
 
-uint64_t read_LEB(uint8_t * bytes, uint32_t * pos, uint32_t maxbits);
-uint64_t read_LEB_signed(uint8_t * bytes, uint32_t * pos, uint32_t maxbits);
+uint64_t read_LEB(uint8_t *bytes, uint32_t *pos, uint32_t maxbits);
 
-uint32_t read_uint32(uint8_t * bytes, uint32_t * pos);
+uint64_t read_LEB_signed(uint8_t *bytes, uint32_t *pos, uint32_t maxbits);
 
-char *read_string(uint8_t * bytes, uint32_t * pos, uint32_t * result_len);
+uint32_t read_uint32(uint8_t *bytes, uint32_t *pos);
 
-uint8_t *mmap_file(char *path, uint32_t * len);
+char *read_string(uint8_t *bytes, uint32_t *pos, uint32_t *result_len);
+
+uint8_t *mmap_file(char *path, uint32_t *len);
 
 void *acalloc(size_t nmemb, size_t size, char *name);
+
 void *arecalloc(void *ptr, size_t old_nmemb, size_t nmemb, size_t size, char *name);
+
 char **split_string(char *str, int *count);
 
 // Math
-void sext_8_32(uint32_t * val);
-void sext_16_32(uint32_t * val);
-void sext_8_64(uint64_t * val);
-void sext_16_64(uint64_t * val);
-void sext_32_64(uint64_t * val);
+void sext_8_32(uint32_t *val);
+
+void sext_16_32(uint32_t *val);
+
+void sext_8_64(uint64_t *val);
+
+void sext_16_64(uint64_t *val);
+
+void sext_32_64(uint64_t *val);
+
 uint32_t rotl32(uint32_t n, unsigned int c);
+
 uint32_t rotr32(uint32_t n, unsigned int c);
+
 uint64_t rotl64(uint64_t n, unsigned int c);
+
 uint64_t rotr64(uint64_t n, unsigned int c);
+
 double wa_fmax(double a, double b);
+
 double wa_fmin(double a, double b);
 
 // MsgPack
-void _dump_object(msgpack_object * obj);
-int32_t msgpack_strcmp(msgpack_object * s1, char *s2);
-msgpack_object *msgpack_get_value(msgpack_object * obj, char *key);
+void _dump_object(msgpack_object *obj);
+
+int32_t msgpack_strcmp(msgpack_object *s1, char *s2);
+
+msgpack_object *msgpack_get_value(msgpack_object *obj, char *key);
+
 size_t msgpack_sizeof(msgpack_object *obj);
+
 void msgpack_pack(msgpack_packer *pk, msgpack_object *value);
-void msgpack_repack(msgpack_packer *pk, msgpack_object *value, char* key);
+
+void msgpack_repack(msgpack_packer *pk, msgpack_object *value, char *key);

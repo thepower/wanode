@@ -8,7 +8,7 @@
 #  define WA_VERSION 0x01
 
 #  define STACK_SIZE      0x10000
-                                // 65536
+// 65536
 #  define BLOCKSTACK_SIZE 0x1000// 4096
 #  define CALLSTACK_SIZE  0x1000// 4096
 
@@ -26,122 +26,127 @@
 #  define KIND_GLOBAL   3
 
 typedef struct Type {
-  uint8_t form;
-  uint32_t param_count;
-  uint32_t *params;
-  uint32_t result_count;
-  uint32_t *results;
+    uint8_t form;
+    uint32_t param_count;
+    uint32_t *params;
+    uint32_t result_count;
+    uint32_t *results;
 } Type;
 
 typedef union FuncPtr {
-  void (*void_void) ();
-  void (*void_i32) (uint32_t);
-  void (*void_i64) (uint64_t);
-  void (*void_f32) (float);
-  void (*void_f64) (double);
+    void (*void_void)();
 
-  double (*f64_f64) (double);
+    void (*void_i32)(uint32_t);
+
+    void (*void_i64)(uint64_t);
+
+    void (*void_f32)(float);
+
+    void (*void_f64)(double);
+
+    double (*f64_f64)(double);
 } FuncPtr;
 
 // A block or function
 typedef struct Block {
-  uint8_t block_type;           // 0x00: function, 0x01: init_exp
-  // 0x02: block, 0x03: loop, 0x04: if
-  uint32_t fidx;                // function only (index)
-  Type *type;                   // params/results type
-  uint32_t local_count;         // function only
-  uint32_t *locals;             // function only
-  uint32_t start_addr;
-  uint32_t end_addr;
-  uint32_t else_addr;           // if block only
-  uint32_t br_addr;             // blocks only
-  char *export_name;            // function only (exported)
-  char *import_module;          // function only (imported)
-  char *import_field;           // function only (imported)
-  void *(*func_ptr) ();         // function only (imported)
+    uint8_t block_type;           // 0x00: function, 0x01: init_exp
+    // 0x02: block, 0x03: loop, 0x04: if
+    uint32_t fidx;                // function only (index)
+    Type *type;                   // params/results type
+    uint32_t local_count;         // function only
+    uint32_t *locals;             // function only
+    uint32_t start_addr;
+    uint32_t end_addr;
+    uint32_t else_addr;           // if block only
+    uint32_t br_addr;             // blocks only
+    char *export_name;            // function only (exported)
+    char *import_module;          // function only (imported)
+    char *import_field;           // function only (imported)
+    void *(*func_ptr)();         // function only (imported)
 } Block;
 
 ///
 
 typedef struct StackValue {
-  uint8_t value_type;
-  union {
-    uint32_t uint32;
-    int32_t int32;
-    uint64_t uint64;
-    int64_t int64;
-    float f32;
-    double f64;
-  } value;
+    uint8_t value_type;
+    union {
+        uint32_t uint32;
+        int32_t int32;
+        uint64_t uint64;
+        int64_t int64;
+        float f32;
+        double f64;
+    } value;
 } StackValue;
 
 typedef struct Frame {
-  Block *block;
-  // Saved state
-  int sp;
-  int fp;
-  uint32_t ra;
+    Block *block;
+    // Saved state
+    int sp;
+    int fp;
+    uint32_t ra;
 } Frame;
 
 ///
 
 typedef struct Table {
-  uint8_t elem_type;            // type of entries (only ANYFUNC in MVP)
-  uint32_t initial;             // initial table size
-  uint32_t maximum;             // maximum table size
-  uint32_t size;                // current table size
-  uint32_t *entries;
+    uint8_t elem_type;            // type of entries (only ANYFUNC in MVP)
+    uint32_t initial;             // initial table size
+    uint32_t maximum;             // maximum table size
+    uint32_t size;                // current table size
+    uint32_t *entries;
 } Table;
 
 typedef struct Memory {
-  uint32_t initial;             // initial size (64K pages)
-  uint32_t maximum;             // maximum size (64K pages)
-  uint32_t pages;               // current size (64K pages)
-  uint8_t *bytes;               // memory area
+    uint32_t initial;             // initial size (64K pages)
+    uint32_t maximum;             // maximum size (64K pages)
+    uint32_t pages;               // current size (64K pages)
+    uint8_t *bytes;               // memory area
 } Memory;
 
 typedef struct Options {
-  // when true, table entries are accessed like this:
-  // m->table.entries[m->table.entries-index]
-  // when false, table entires are accessed like this:
-  // m->table.entries[index]
-  bool mangle_table_index;
-  bool (*resolvesym)(char *module, char *name, void **val, char **err);
+    // when true, table entries are accessed like this:
+    // m->table.entries[m->table.entries-index]
+    // when false, table entires are accessed like this:
+    // m->table.entries[index]
+    bool mangle_table_index;
+
+    bool (*resolvesym)(char *module, char *name, void **val, char **err);
 } Options;
 
 typedef struct Module {
-  char *path;                   // file path of the wasm module
-  Options options;              // Config options
+    char *path;                   // file path of the wasm module
+    Options options;              // Config options
 
-  uint32_t byte_count;          // number of bytes in the module
-  uint8_t *bytes;               // module content/bytes
+    uint32_t byte_count;          // number of bytes in the module
+    uint8_t *bytes;               // module content/bytes
 
-  uint32_t type_count;          // number of function types
-  Type *types;                  // function types
+    uint32_t type_count;          // number of function types
+    Type *types;                  // function types
 
-  uint32_t import_count;        // number of leading imports in functions
-  uint32_t function_count;      // number of function (including imports)
-  Block *functions;             // imported and locally defined functions
-  Block **block_lookup;         // map of module byte position to Blocks
-  // same length as byte_count
-  uint32_t start_function;      // function to run on module load
+    uint32_t import_count;        // number of leading imports in functions
+    uint32_t function_count;      // number of function (including imports)
+    Block *functions;             // imported and locally defined functions
+    Block **block_lookup;         // map of module byte position to Blocks
+    // same length as byte_count
+    uint32_t start_function;      // function to run on module load
 
-  Table table;
+    Table table;
 
-  Memory memory;
+    Memory memory;
 
-  uint32_t global_count;        // number of globals
-  StackValue *globals;          // globals
+    uint32_t global_count;        // number of globals
+    StackValue *globals;          // globals
 
-  // Runtime state
-  uint32_t pc;                  // program counter
-  int sp;                       // operand stack pointer
-  int fp;                       // current frame pointer into stack
-  StackValue stack[STACK_SIZE]; // main operand stack
-  int csp;                      // callstack pointer
-  Frame callstack[CALLSTACK_SIZE];  // callstack
-  uint32_t gas;
-  void *extra;
+    // Runtime state
+    uint32_t pc;                  // program counter
+    int sp;                       // operand stack pointer
+    int fp;                       // current frame pointer into stack
+    StackValue stack[STACK_SIZE]; // main operand stack
+    int csp;                      // callstack pointer
+    Frame callstack[CALLSTACK_SIZE];  // callstack
+    uint32_t gas;
+    void *extra;
 } Module;
 
 //
@@ -149,12 +154,19 @@ typedef struct Module {
 //
 
 extern char exception[];
-char *value_repr(StackValue * v);
-uint32_t get_export_fidx(Module * m, char *name);
-bool interpret(Module * m);
+
+char *value_repr(StackValue *v);
+
+uint32_t get_export_fidx(Module *m, char *name);
+
+bool interpret(Module *m);
+
 Module *load_module_from_file(char *path, Options options);
+
 Module *load_module(uint8_t *code, size_t code_len, Options options);
+
 void module_free(Module *m);
-bool invoke(Module * m, char *entry, size_t argc, StackValue *argv);
+
+bool invoke(Module *m, char *entry, size_t argc, StackValue *argv);
 
 #endif // of WAC_H

@@ -9,9 +9,13 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #ifdef __linux__
+
 #include <sys/prctl.h>
+
 #endif
+
 #include <netinet/in.h>
 
 #include <msgpack.h>
