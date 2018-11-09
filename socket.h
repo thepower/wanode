@@ -11,6 +11,6 @@ out_message *out_message_new();
 
 void out_message_free(out_message *msg);
 
-size_t message_write(int socket, out_message *msg);
+ssize_t message_write(int socket, out_message *msg);
 
 in_message *message_read(int socket);

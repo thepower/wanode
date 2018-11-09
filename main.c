@@ -1,6 +1,8 @@
-
+#include <getopt.h>
 
 #include "main.h"
+#include "socket.h"
+#include "executor.h"
 
 out_message *create_hello(uint32_t req_id) {
 
@@ -55,23 +57,20 @@ int main(int argc, char **argv) {
 
     app_state acfg, *cfg = &acfg;
 
-    memset(&cfg->addr, '0', sizeof(cfg->addr));
+    memset(&cfg->addr, 0x00, sizeof(cfg->addr));
     cfg->addr.sin_family = AF_INET;
-    cfg->addr.sin_port = htons(atoi(port));
+    cfg->addr.sin_port = htons((uint16_t) atoi(port));
     if (inet_pton(AF_INET, host, &cfg->addr.sin_addr) <= 0) {
         FATAL("inet_pton error occured\n");
-        return 1;
     }
 
     if ((cfg->socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         FATAL("could not create socket \n");
-        return 2;
     }
 
     if (connect(cfg->socket, (struct sockaddr *) &cfg->addr, sizeof(cfg->addr)) < 0) {
-        FATAL("connect failed \n");
         close(cfg->socket);
-        return 3;
+        FATAL("connect failed \n");
     }
 
     debug("Sending HELLO message\n");

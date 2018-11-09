@@ -1,8 +1,6 @@
-#include "executor.h"
-#include "main.h"
 #include "socket.h"
+#include "executor.h"
 #include "wa.h"
-#include "storage.h"
 #include "env.h"
 
 
@@ -198,7 +196,7 @@ void do_exec(app_state *cfg, in_message *msg) {
         // FIXME:
         *(int *) (m->memory.bytes + 4) = m->memory.pages * 2 << 15;
         m->gas = d.gas->via.u64;
-        m->extra = &d;debug("Module loaded\n");debug("Starting with gas = %d\n", m->gas);
+        m->extra = &d;debug("Module loaded\n");debug("Starting with gas = %lu\n", m->gas);
 
         char *name = calloc(1024, 1);
         strncat(name, d.method, 1024);
@@ -207,7 +205,7 @@ void do_exec(app_state *cfg, in_message *msg) {
         bool res = invoke(m, name, 0, NULL);
         free(name);
 
-        if (res) { debug("EXEC OK, gas = %d\n", m->gas);
+        if (res) { debug("EXEC OK, gas = %lu\n", m->gas);
 
             msgpack_pack_map(&pk, 5);
 
@@ -243,8 +241,8 @@ void do_exec(app_state *cfg, in_message *msg) {
 
             msgpack_pack_str(&pk, 3);
             msgpack_pack_str_body(&pk, "gas", 3);
-            msgpack_pack_fix_int32(&pk, m->gas);
-        } else { debug("EXEC ERR: %s, gas = %d\n", exception, m->gas);
+            msgpack_pack_fix_uint64(&pk, m->gas);
+        } else { debug("EXEC ERR: %s, gas = %lu\n", exception, m->gas);
 
             msgpack_pack_map(&pk, 3);
 
@@ -254,13 +252,13 @@ void do_exec(app_state *cfg, in_message *msg) {
 
             msgpack_pack_str(&pk, 3);
             msgpack_pack_str_body(&pk, "err", 3);
-            int l = strlen(exception);
+            size_t l = strlen(exception);
             msgpack_pack_str(&pk, l);
             msgpack_pack_str_body(&pk, exception, l);
 
             msgpack_pack_str(&pk, 3);
             msgpack_pack_str_body(&pk, "gas", 3);
-            msgpack_pack_fix_int32(&pk, m->gas);
+            msgpack_pack_fix_uint64(&pk, m->gas);
         }
         module_free(m);
     } else {

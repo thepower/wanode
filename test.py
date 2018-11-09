@@ -170,6 +170,13 @@ class TestStringMethods(unittest.TestCase):
                     call=['save_data', [{"q1": "a1", "q2": "a2"}],],
                     code=self.code))
 
+    ret = vm.send_tx(
+        vm.make_ledger(code=self.code),
+        vm.make_tx( kind=16,
+                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    call=['save_data', [{"q1": "a2", "q2": "a2"}],],
+                    code=self.code))
+
     self.assertEqual(ret[None], 'exec', 'Non-Exec reply')
     self.assertNotIn('err', ret, "Error in response")
 

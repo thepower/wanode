@@ -8,7 +8,7 @@
 
 uint8_t *get_mem_ptr(Module *m, size_t offset, size_t size) {
     size_t max_offset = m->memory.pages * 65536;
-    if ((offset + size) > max_offset) { warn("Memory overflow, %d %d %d\n", offset, size, max_offset);
+    if ((offset + size) > max_offset) { warn("Memory overflow, %zu %zu %zu\n", offset, size, max_offset);
         return NULL;
     }
     return m->memory.bytes + offset;

@@ -3,9 +3,9 @@
 #include "util.h"
 #include "socket.h"
 
-size_t socket_readall(int sock, uint8_t *buffer, size_t len) {
+ssize_t socket_readall(int sock, uint8_t *buffer, size_t len) {
     uint8_t *ptr = buffer;
-    size_t actual_len = 0, n;
+    ssize_t actual_len = 0, n;
 
     while (len > 0 && (n = read(sock, ptr, len)) > 0) {
         actual_len += n;
@@ -17,9 +17,9 @@ size_t socket_readall(int sock, uint8_t *buffer, size_t len) {
     return actual_len;
 }
 
-size_t socket_writeall(int sock, uint8_t *buffer, size_t len) {
+ssize_t socket_writeall(int sock, uint8_t *buffer, size_t len) {
     uint8_t *ptr = buffer;
-    size_t actual_len = 0, n;
+    ssize_t actual_len = 0, n;
 
     while (len > 0 && (n = write(sock, ptr, len)) > 0) {
         actual_len += n;
@@ -58,30 +58,30 @@ void out_message_free(out_message *msg) {
 }
 
 in_message *message_read(int socket) {
-    uint32_t l, len, seq;
+    ssize_t l, len, seq;
 
     l = socket_readall(socket, (uint8_t *) &len, 4);
     if (l != 4) { warn("Unable to read msg len\n");
         return NULL;
     }
-    len = ntohl(len);
+    len = ntohl((uint32_t)len);
     len -= 4;
     l = socket_readall(socket, (uint8_t *) &seq, 4);
     if (l != 4) { warn("Unable to read msg seq\n");
         return NULL;
     }
-    seq = ntohl(seq);
+    seq = ntohl((uint32_t)seq);
 
-    in_message *msg = in_message_new(len);
+    in_message *msg = in_message_new((size_t)len);
 
-    msg->seq = seq;
+    msg->seq = (uint32_t)seq;
 
-    l = socket_readall(socket, (uint8_t *) msgpack_unpacker_buffer(msg->unp), len);
+    l = socket_readall(socket, (uint8_t *) msgpack_unpacker_buffer(msg->unp), (size_t)len);
     if (l != len) { warn("Unable to read msg body\n");
         in_message_free(msg);
         return NULL;
     }
-    msgpack_unpacker_buffer_consumed(msg->unp, l);
+    msgpack_unpacker_buffer_consumed(msg->unp, (size_t)l);
 
     msgpack_unpack_return ret = msgpack_unpacker_next(msg->unp, &msg->und);
 
@@ -98,12 +98,12 @@ in_message *message_read(int socket) {
     return NULL;
 }
 
-size_t message_write(int socket, out_message *msg) {
-    size_t l, len, seq;
-    len = htonl(msg->data.size + 4);
-    l = socket_writeall(socket, (uint8_t *) &len, 4);
+ssize_t message_write(int socket, out_message *msg) {
+    ssize_t l, len, seq;
+    len = htonl((uint32_t)msg->data.size + 4);
+    socket_writeall(socket, (uint8_t *) &len, 4);
     seq = htonl(msg->seq);
-    l = socket_writeall(socket, (uint8_t *) &seq, 4);
+    socket_writeall(socket, (uint8_t *) &seq, 4);
     l = socket_writeall(socket, (uint8_t *) msg->data.data, msg->data.size);
     out_message_free(msg);
     return l + 8;
