@@ -1,0 +1,6 @@
+[submodule "msgpack-c"]
+	path = msgpack-c
+	url = https://github.com/msgpack/msgpack-c.git
+[submodule "lz4"]
+	path = lz4
+	url = https://github.com/lz4/lz4.git

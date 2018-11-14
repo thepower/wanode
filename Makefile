@@ -5,22 +5,29 @@ LIBS = m
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:c=o)
 
+.PHONY: clean git_update
+
 all: wanode
 
-msgpack-c/libmsgpackc.a:
-	[ -d msgpack-c ] || git clone https://github.com/msgpack/msgpack-c.git
+clean:
+	rm -rf *.o *.a wanode msgpack-c lz4 _build
+
+git_update:
+	git submodule init
+	git submodule update
+
+msgpack-c/libmsgpackc.a: git_update
 	(cd msgpack-c; cmake .; make -f CMakeFiles/msgpackc-static.dir/build.make CMakeFiles/msgpackc-static.dir/depend ; make -f CMakeFiles/msgpackc-static.dir/build.make CMakeFiles/msgpackc-static.dir/build)
+
+lz4/lib/liblz4.a: git_update
+	$(MAKE) -C lz4
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
 
-wanode: msgpack-c/libmsgpackc.a $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(foreach l,$(LIBS),-l$(l)) msgpack-c/libmsgpackc.a
+wanode: msgpack-c/libmsgpackc.a lz4/lib/liblz4.a $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(foreach l,$(LIBS),-l$(l)) msgpack-c/libmsgpackc.a lz4/lib/liblz4.a
 
 test: test.py wanode
 	./test.py
-
-.PHONY:
-clean:
-	rm -rf *.o *.a wanode msgpack-c _build
 
