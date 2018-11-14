@@ -1,3 +1,4 @@
+#include <lz4frame.h>
 #include "socket.h"
 #include "executor.h"
 #include "wa.h"
@@ -180,6 +181,57 @@ bool parse_exec_data(in_message *msg, exec_data *d) {
     return false;
 }
 
+size_t unlz4(uint8_t *dst, size_t dst_size, uint8_t *src, size_t src_size){
+    LZ4F_errorCode_t err;
+
+    LZ4F_decompressionContext_t ctx;
+    err = LZ4F_createDecompressionContext(&ctx, LZ4F_VERSION);
+    if(LZ4F_isError(err)) {
+        return 0;
+    }
+
+    uint8_t *dptr = dst, *sptr = src;
+    size_t dsize = dst_size, ssize = src_size;
+
+    while(dsize > 0) {
+        err = LZ4F_decompress(ctx, dptr, &dsize, sptr, &ssize, NULL);
+        dptr += dsize;
+        sptr += ssize;
+        if(err <= 0){
+            break;
+        }
+    }
+
+    if(LZ4F_isError(err)) {
+        dptr = dst;
+    }
+
+    err = LZ4F_freeDecompressionContext(ctx);
+    if(LZ4F_isError(err)) {
+        dptr = dst;
+    }
+
+    return dptr - dst;
+}
+
+void return_err(msgpack_packer *pk, uint32_t gas, char *err_string) {
+    msgpack_pack_map(pk, 3);
+
+    msgpack_pack_nil(pk);
+    msgpack_pack_str(pk, 4);
+    msgpack_pack_str_body(pk, "exec", 4);
+
+    msgpack_pack_str(pk, 3);
+    msgpack_pack_str_body(pk, "err", 3);
+    size_t l = strlen(err_string);
+    msgpack_pack_str(pk, l);
+    msgpack_pack_str_body(pk, err_string, l);
+
+    msgpack_pack_str(pk, 3);
+    msgpack_pack_str_body(pk, "gas", 3);
+    msgpack_pack_fix_uint32(pk, gas);
+}
+
 void do_exec(app_state *cfg, in_message *msg) {
     exec_data d;
     exec_data_init(&d);
@@ -190,77 +242,85 @@ void do_exec(app_state *cfg, in_message *msg) {
     msgpack_packer pk;
     msgpack_packer_init(&pk, &out->data, msgpack_sbuffer_write);
 
-    if (parse_exec_data(msg, &d)) { info("Processing request %d\n", msg->seq >> 1);
+    if (parse_exec_data(msg, &d)) {
+        info("Processing request %d\n", msg->seq >> 1);
         Options opts = {false, resolvesym};
-        Module *m = load_module((uint8_t *) d.code->via.bin.ptr, d.code->via.bin.size, opts);
-        // FIXME:
-        *(int *) (m->memory.bytes + 4) = m->memory.pages * 2 << 15;
-        m->gas = d.gas->via.u64;
-        m->extra = &d;debug("Module loaded\n");debug("Starting with gas = %lu\n", m->gas);
+        uint8_t *code = (uint8_t*)d.code->via.bin.ptr;
+        size_t size = d.code->via.bin.size;
 
-        char *name = calloc(1024, 1);
-        strncat(name, d.method, 1024);
-        strncat(name, "_wrapper", 8);
-
-        bool res = invoke(m, name, 0, NULL);
-        free(name);
-
-        if (res) { debug("EXEC OK, gas = %lu\n", m->gas);
-
-            msgpack_pack_map(&pk, 5);
-
-            msgpack_pack_nil(&pk);
-            msgpack_pack_str(&pk, 4);
-            msgpack_pack_str_body(&pk, "exec", 4);
-
-            msgpack_sbuffer data;
-            msgpack_sbuffer_init(&data);
-            msgpack_packer subpk;
-            msgpack_packer_init(&subpk, &data, msgpack_sbuffer_write);
-            storage_save(d.s, &subpk);
-
-            msgpack_pack_str(&pk, 5);
-            msgpack_pack_str_body(&pk, "state", 5);
-            msgpack_pack_bin(&pk, data.size);
-            msgpack_pack_bin_body(&pk, data.data, data.size);
-
-            msgpack_sbuffer_destroy(&data);
-
-
-            msgpack_pack_str(&pk, 3);
-            msgpack_pack_str_body(&pk, "txs", 3);
-            msgpack_pack_array(&pk, 0);
-
-            msgpack_pack_str(&pk, 3);
-            msgpack_pack_str_body(&pk, "ret", 3);
-            if (d.ret) {
-                msgpack_pack(&pk, d.ret);
-            } else {
-                msgpack_pack_nil(&pk);
-            }
-
-            msgpack_pack_str(&pk, 3);
-            msgpack_pack_str_body(&pk, "gas", 3);
-            msgpack_pack_fix_uint64(&pk, m->gas);
-        } else { debug("EXEC ERR: %s, gas = %lu\n", exception, m->gas);
-
-            msgpack_pack_map(&pk, 3);
-
-            msgpack_pack_nil(&pk);
-            msgpack_pack_str(&pk, 4);
-            msgpack_pack_str_body(&pk, "exec", 4);
-
-            msgpack_pack_str(&pk, 3);
-            msgpack_pack_str_body(&pk, "err", 3);
-            size_t l = strlen(exception);
-            msgpack_pack_str(&pk, l);
-            msgpack_pack_str_body(&pk, exception, l);
-
-            msgpack_pack_str(&pk, 3);
-            msgpack_pack_str_body(&pk, "gas", 3);
-            msgpack_pack_fix_uint64(&pk, m->gas);
+        if (size > 4 && code[0] == 0x04 && code[1] == 0x22 && code[2] == 0x4d && code[3] == 0x18) {
+            debug("Compressed code %lu bytes\n", size);
+            size_t bsize = 4*1024*1024;
+            uint8_t *buffer = malloc(bsize);
+            size = unlz4(buffer, bsize, code, size);
+            code = buffer;
+            debug("Unpacked code %lu bytes\n", size);
         }
-        module_free(m);
+
+        if (size > 0){
+            Module *m = load_module(code, size, opts);
+            // FIXME:
+            *(int *) (m->memory.bytes + 4) = m->memory.pages * 2 << 15;
+            m->gas = (uint32_t)d.gas->via.u64;
+            m->extra = &d;debug("Module loaded\n");debug("Starting with gas = %u\n", m->gas);
+
+            char *name = calloc(1024, 1);
+            strncat(name, d.method, 1024);
+            strncat(name, "_wrapper", 8);
+
+            bool res = invoke(m, name, 0, NULL);
+            free(name);
+
+            if (res) {
+                debug("EXEC OK, gas = %u\n", m->gas);
+
+                msgpack_pack_map(&pk, 5);
+
+                msgpack_pack_nil(&pk);
+                msgpack_pack_str(&pk, 4);
+                msgpack_pack_str_body(&pk, "exec", 4);
+
+                msgpack_sbuffer data;
+                msgpack_sbuffer_init(&data);
+                msgpack_packer subpk;
+                msgpack_packer_init(&subpk, &data, msgpack_sbuffer_write);
+                storage_save(d.s, &subpk);
+
+                msgpack_pack_str(&pk, 5);
+                msgpack_pack_str_body(&pk, "state", 5);
+                msgpack_pack_bin(&pk, data.size);
+                msgpack_pack_bin_body(&pk, data.data, data.size);
+
+                msgpack_sbuffer_destroy(&data);
+
+
+                msgpack_pack_str(&pk, 3);
+                msgpack_pack_str_body(&pk, "txs", 3);
+                msgpack_pack_array(&pk, 0);
+
+                msgpack_pack_str(&pk, 3);
+                msgpack_pack_str_body(&pk, "ret", 3);
+                if (d.ret) {
+                    msgpack_pack(&pk, d.ret);
+                } else {
+                    msgpack_pack_nil(&pk);
+                }
+
+                msgpack_pack_str(&pk, 3);
+                msgpack_pack_str_body(&pk, "gas", 3);
+                msgpack_pack_fix_uint64(&pk, m->gas);
+            } else {
+                debug("EXEC ERR: %s, gas = %u\n", exception, m->gas);
+                return_err(&pk, m->gas, exception);
+            }
+            module_free(m);
+            if (code != (uint8_t*)d.code->via.bin.ptr){
+                free(code);
+            }
+        }else{
+            info("Code error\n");
+            return_err(&pk, (uint32_t)d.gas->via.u64, "Code Error");
+        }
     } else {
         msgpack_pack_map(&pk, 2);
 

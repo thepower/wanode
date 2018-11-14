@@ -148,7 +148,7 @@ class VM:
 class TestStringMethods(unittest.TestCase):
   def setUp(self):
     self.vm = VM()
-    self.code = read("../rust/test-pair/target/wasm32-unknown-unknown/release/test_pair.wasm")
+    self.code = read("../rust/test-pair/target/wasm32-unknown-unknown/release/test_pair.wasm.lz4")
 
   def tearDown(self):
     self.vm.close()

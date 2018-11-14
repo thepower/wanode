@@ -145,7 +145,7 @@ typedef struct Module {
     StackValue stack[STACK_SIZE]; // main operand stack
     int csp;                      // callstack pointer
     Frame callstack[CALLSTACK_SIZE];  // callstack
-    uint64_t gas;
+    uint32_t gas;
     void *extra;
 } Module;
 
