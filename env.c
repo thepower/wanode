@@ -73,6 +73,12 @@ void exported_get_value_size(Module *m) {
     s->value.int32 = (int32_t) value_size;debug("Value size %zu\n", value_size);
 }
 
+void exported_reset(Module *m) {
+    exec_data *d = (exec_data *) m->extra;
+    storage_destroy(&d->s);
+    storage_init(&d->s);
+}
+
 void tx_repack(Module *m) {
     exec_data *d = (exec_data *) m->extra;
     msgpack_object *tx = d->tx;
@@ -266,6 +272,7 @@ ExportedFunc FUNCS[] = {
         {"env", "storage_write",        (void *) exported_write},
         {"env", "storage_value_size",   (void *) exported_get_value_size},
         {"env", "storage_read",         (void *) exported_read},
+        {"env", "storage_reset",         (void *) exported_reset},
 
         {"env", "get_tx_raw_size",      (void *) exported_get_tx_raw_size},
         {"env", "get_tx_raw",           (void *) exported_get_tx_raw},
