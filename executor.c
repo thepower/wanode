@@ -40,148 +40,180 @@ bool parse_exec_data(in_message *msg, exec_data *d) {
 
             // Unpack ledger and get stored state
             ledger = msgpack_get_value(msg->data, "ledger");
-            if (ledger == NULL || ledger->type != MSGPACK_OBJECT_BIN) { warn("Exec request without ledger\n");
+            if (ledger == NULL || ledger->type != MSGPACK_OBJECT_BIN) {
+                warn("Exec request without ledger\n");
                 return false;
             }
 
             ret = msgpack_unpack_next(&d->uledger, ledger->via.bin.ptr, ledger->via.bin.size, NULL);
-            if (ret != MSGPACK_UNPACK_SUCCESS) { debug("Ledger unpack error\n");
+            if (ret != MSGPACK_UNPACK_SUCCESS) {
+                debug("Ledger unpack error\n");
                 return false;
-            }debug("Ledger unpacked\n");
+            }
+            debug("Ledger unpacked\n");
             d->ledger = &d->uledger.data;
 
             balance = msgpack_get_value(d->ledger, "amount");
-            if (balance == NULL || balance->type != MSGPACK_OBJECT_MAP) { warn("Ledger without state\n");
+            if (balance == NULL || balance->type != MSGPACK_OBJECT_MAP) {
+                warn("Ledger without state\n");
             } else {
                 d->balance = balance;
             }
 
             state = msgpack_get_value(d->ledger, "state");
-            if (state == NULL || state->type != MSGPACK_OBJECT_BIN) { warn("Ledger without state\n");
+            if (state == NULL || state->type != MSGPACK_OBJECT_BIN) {
+                warn("Ledger without state\n");
             } else {
                 storage_load(d->s, state);
             }
 
             // Try to unpack TX
             txc = msgpack_get_value(msg->data, "tx");
-            if (txc == NULL || txc->type != MSGPACK_OBJECT_BIN) { debug("Exec request without TX\n");
+            if (txc == NULL || txc->type != MSGPACK_OBJECT_BIN) {
+                debug("Exec request without TX\n");
 
                 // TX container missing
                 d->code = msgpack_get_value(d->ledger, "code");
-                if (d->code == NULL) { warn("Ledger without code\n");
+                if (d->code == NULL) {
+                    warn("Ledger without code\n");
                     return false;
-                }debug("Generic transaction, using code from ledger\n");
+                }
+                debug("Generic transaction, using code from ledger\n");
 
                 call = msgpack_get_value(msg->data, "c");
-                if (call == NULL || call->type != MSGPACK_OBJECT_ARRAY) { debug(
-                            "TXless call without call parameters\n");
+                if (call == NULL || call->type != MSGPACK_OBJECT_ARRAY) {
+                    debug(
+                        "TXless call without call parameters\n");
                     return false;
                 }
                 method = &call->via.array.ptr[0];
-                if (method == NULL || method->type != MSGPACK_OBJECT_STR) { debug("Invalid method name type\n");
+                if (method == NULL || method->type != MSGPACK_OBJECT_STR) {
+                    debug("Invalid method name type\n");
                     return false;
                 } else {
                     d->method = calloc(method->via.str.size + 1, 1);
                     strncat(d->method, method->via.str.ptr, method->via.str.size);
                 }
                 d->args = &call->via.array.ptr[1];
-                if (d->args == NULL || d->args->type != MSGPACK_OBJECT_ARRAY) { debug("Invalid args type\n");
+                if (d->args == NULL || d->args->type != MSGPACK_OBJECT_ARRAY) {
+                    debug("Invalid args type\n");
                     return false;
                 }
             } else {
                 // TX container present
                 ret = msgpack_unpack_next(&d->utx_container, txc->via.bin.ptr, txc->via.bin.size, NULL);
 
-                if (ret != MSGPACK_UNPACK_SUCCESS) { debug("Tx container unpack error\n");
+                if (ret != MSGPACK_UNPACK_SUCCESS) {
+                    debug("Tx container unpack error\n");
                     return false;
-                }debug("Tx container unpacked\n");
+                }
+                debug("Tx container unpacked\n");
                 d->tx_container = &d->utx_container.data;
 
                 obj = msgpack_get_value(d->tx_container, "ver");
-                if (obj == NULL || obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 != 0x02) { debug(
-                            "Invalid tx container version %ld\n", obj->via.u64);
+                if (obj == NULL || obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 != 0x02) {
+                    debug(
+                        "Invalid tx container version %ld\n", obj->via.u64);
                     return false;
                 }
 
                 tx = msgpack_get_value(d->tx_container, "body");
-                if (tx == NULL || tx->type != MSGPACK_OBJECT_BIN) { warn("TX container without TX body\n");
+                if (tx == NULL || tx->type != MSGPACK_OBJECT_BIN) {
+                    warn("TX container without TX body\n");
                     return false;
                 }
                 d->tx_body = tx;
                 ret = msgpack_unpack_next(&d->utx, tx->via.bin.ptr, tx->via.bin.size, NULL);
 
-                if (ret != MSGPACK_UNPACK_SUCCESS) { debug("Tx unpack error\n");
+                if (ret != MSGPACK_UNPACK_SUCCESS) {
+                    debug("Tx unpack error\n");
                     return false;
-                }debug("Tx unpacked\n");
+                }
+                debug("Tx unpacked\n");
                 d->tx = &d->utx.data;
 
                 obj = msgpack_get_value(d->tx, "k");
-                if (obj == NULL || obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER) { warn("TX without Kind\n");
+                if (obj == NULL || obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER) {
+                    warn("TX without Kind\n");
                     return false;
                 }
                 uint64_t kind = obj->via.u64;
-                if (kind != 16 && kind != 18) { debug("Skipping non-interesting tx kind\n");
+                if (kind != 16 && kind != 18) {
+                    debug("Skipping non-interesting tx kind\n");
                     return false;
-                }debug("Tx kind = %ld\n", kind);
+                }
+                debug("Tx kind = %ld\n", kind);
 
                 call = msgpack_get_value(d->tx, "c");
-                if (call == NULL || call->type != MSGPACK_OBJECT_ARRAY) { debug("TX call without call parameters\n");
+                if (call == NULL || call->type != MSGPACK_OBJECT_ARRAY) {
+                    debug("TX call without call parameters\n");
                     return false;
                 }
                 method = &call->via.array.ptr[0];
-                if (method == NULL || method->type != MSGPACK_OBJECT_STR) { debug("Invalid method name type\n");
+                if (method == NULL || method->type != MSGPACK_OBJECT_STR) {
+                    debug("Invalid method name type\n");
                     return false;
                 } else {
                     d->method = calloc(method->via.str.size + 1, 1);
                     strncat(d->method, method->via.str.ptr, method->via.str.size);
                 }
                 d->args = &call->via.array.ptr[1];
-                if (d->args == NULL || d->args->type != MSGPACK_OBJECT_ARRAY) { debug("Invalid args type\n");
+                if (d->args == NULL || d->args->type != MSGPACK_OBJECT_ARRAY) {
+                    debug("Invalid args type\n");
                     return false;
                 }
 
                 switch (kind) {
-                    case 16: // Generic TX
-                        d->code = msgpack_get_value(d->ledger, "code");
-                        if (d->code == NULL) { warn("Ledger without code\n");
-                            return false;
-                        }
-                        if (strncmp(d->method, "init", 4) == 0) { warn("Attempt to call INIT on non-deploy TX\n");
-                            return false;
-                        }debug("Generic transaction, using code from ledger\n");
-                        break;
-                    case 18: // Deploy TX
-                        obj = msgpack_get_value(d->tx, "e");
-                        if (obj == NULL) { warn("Deploy transaction without Extradata\n");
-                            return false;
-                        }
-                        obj = msgpack_get_value(obj, "code");
-                        if (obj == NULL) { warn("Extradata without code\n");
-                            return false;
-                        }
-                        d->code = obj;debug("Deploy transaction, using code from TX\n");
-                        if (d->method) {
-                            free(d->method);
-                        }
-                        d->method = calloc(5, 1);
-                        strncat(d->method, "init", 4);
-                        break;
-                    default:debug("Skipping non-interesting tx kind\n");
+                case 16: // Generic TX
+                    d->code = msgpack_get_value(d->ledger, "code");
+                    if (d->code == NULL) {
+                        warn("Ledger without code\n");
                         return false;
+                    }
+                    if (strncmp(d->method, "init", 4) == 0) {
+                        warn("Attempt to call INIT on non-deploy TX\n");
+                        return false;
+                    }
+                    debug("Generic transaction, using code from ledger\n");
+                    break;
+                case 18: // Deploy TX
+                    obj = msgpack_get_value(d->tx, "e");
+                    if (obj == NULL) {
+                        warn("Deploy transaction without Extradata\n");
+                        return false;
+                    }
+                    obj = msgpack_get_value(obj, "code");
+                    if (obj == NULL) {
+                        warn("Extradata without code\n");
+                        return false;
+                    }
+                    d->code = obj;
+                    debug("Deploy transaction, using code from TX\n");
+                    if (d->method) {
+                        free(d->method);
+                    }
+                    d->method = calloc(5, 1);
+                    strncat(d->method, "init", 4);
+                    break;
+                default:
+                    debug("Skipping non-interesting tx kind\n");
+                    return false;
                 }
             }
 
             d->gas = msgpack_get_value(msg->data, "gas");
 
             return true;
-        } else { debug("Skipping unknown message kind\n");
+        } else {
+            debug("Skipping unknown message kind\n");
         }
-    } else { debug("Skipping response message\n");
+    } else {
+        debug("Skipping response message\n");
     }
     return false;
 }
 
-size_t unlz4(uint8_t *dst, size_t dst_size, uint8_t *src, size_t src_size){
+size_t unlz4(uint8_t *dst, size_t dst_size, uint8_t *src, size_t src_size) {
     LZ4F_errorCode_t err;
 
     LZ4F_decompressionContext_t ctx;
@@ -197,7 +229,7 @@ size_t unlz4(uint8_t *dst, size_t dst_size, uint8_t *src, size_t src_size){
         err = LZ4F_decompress(ctx, dptr, &dsize, sptr, &ssize, NULL);
         dptr += dsize;
         sptr += ssize;
-        if(err <= 0){
+        if(err <= 0) {
             break;
         }
     }
@@ -257,12 +289,14 @@ void do_exec(app_state *cfg, in_message *msg) {
             debug("Unpacked code %lu bytes\n", size);
         }
 
-        if (size > 0){
+        if (size > 0) {
             Module *m = load_module(code, size, opts);
             // FIXME:
             *(int *) (m->memory.bytes + 4) = m->memory.pages * 2 << 15;
             m->gas = (uint32_t)d.gas->via.u64;
-            m->extra = &d;debug("Module loaded\n");debug("Starting with gas = %u\n", m->gas);
+            m->extra = &d;
+            debug("Module loaded\n");
+            debug("Starting with gas = %u\n", m->gas);
 
             char *name = calloc(1024, 1);
             strncat(name, d.method, 1024);
@@ -314,10 +348,10 @@ void do_exec(app_state *cfg, in_message *msg) {
                 return_err(&pk, m->gas, exception);
             }
             module_free(m);
-            if (code != (uint8_t*)d.code->via.bin.ptr){
+            if (code != (uint8_t*)d.code->via.bin.ptr) {
                 free(code);
             }
-        }else{
+        } else {
             info("Code error\n");
             return_err(&pk, (uint32_t)d.gas->via.u64, "Code Error");
         }

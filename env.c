@@ -8,7 +8,8 @@
 
 uint8_t *get_mem_ptr(Module *m, size_t offset, size_t size) {
     size_t max_offset = m->memory.pages * 65536;
-    if ((offset + size) > max_offset) { warn("Memory overflow, %zu %zu %zu\n", offset, size, max_offset);
+    if ((offset + size) > max_offset) {
+        warn("Memory overflow, %zu %zu %zu\n", offset, size, max_offset);
         return NULL;
     }
     return m->memory.bytes + offset;
@@ -18,7 +19,8 @@ char Dbuf[1024];
 int Dpos = 0;
 
 void exported_flush(Module *m) {
-    (void) m;debug("CONTRACT SAID: '%s'\n", Dbuf);
+    (void) m;
+    debug("CONTRACT SAID: '%s'\n", Dbuf);
     Dpos = 0;
     Dbuf[0] = 0;
 }
@@ -70,7 +72,8 @@ void exported_get_value_size(Module *m) {
     m->sp += 1;
     StackValue *s = &m->stack[m->sp];
     s->value_type = I32;
-    s->value.int32 = (int32_t) value_size;debug("Value size %zu\n", value_size);
+    s->value.int32 = (int32_t) value_size;
+    debug("Value size %zu\n", value_size);
 }
 
 void exported_reset(Module *m) {
@@ -117,7 +120,8 @@ void exported_get_tx_raw_size(Module *m) {
         s->value.int32 = (int32_t) d->tx_repack->size;
     } else {
         s->value.int32 = 0;
-    }debug("tx_raw_size = %d\n", s->value.int32);
+    }
+    debug("tx_raw_size = %d\n", s->value.int32);
 }
 
 void exported_get_tx_raw(Module *m) {
@@ -163,9 +167,11 @@ void exported_get_args_raw_size(Module *m) {
     m->sp += 1;
     StackValue *s = &m->stack[m->sp];
     s->value_type = I32;
-    if (d->args_repack) { debug("Args RAW size = %zu\n", d->args_repack->size);
+    if (d->args_repack) {
+        debug("Args RAW size = %zu\n", d->args_repack->size);
         s->value.int32 = (int32_t) d->args_repack->size;
-    } else { debug("Args RAW size = 0\n");
+    } else {
+        debug("Args RAW size = 0\n");
         s->value.int32 = 0;
     }
 }
@@ -190,11 +196,13 @@ void balance_repack(Module *m) {
     exec_data *d = (exec_data *) m->extra;
     msgpack_object *balance = d->balance;
 
-    if (balance == NULL || balance->type != MSGPACK_OBJECT_MAP) { debug("Balance is NULL or not MAP\n");
+    if (balance == NULL || balance->type != MSGPACK_OBJECT_MAP) {
+        debug("Balance is NULL or not MAP\n");
         return;
     }
 
-    if (d->balance_repack != NULL) { debug("Balance already repacked\n");
+    if (d->balance_repack != NULL) {
+        debug("Balance already repacked\n");
         return;
     }
 
@@ -219,9 +227,11 @@ void exported_get_balance_raw_size(Module *m) {
     m->sp += 1;
     StackValue *s = &m->stack[m->sp];
     s->value_type = I32;
-    if (d->balance_repack) { debug("balance RAW size = %zu\n", d->balance_repack->size);
+    if (d->balance_repack) {
+        debug("balance RAW size = %zu\n", d->balance_repack->size);
         s->value.int32 = (int32_t) d->balance_repack->size;
-    } else { debug("balance RAW size = 0\n");
+    } else {
+        debug("balance RAW size = 0\n");
         s->value.int32 = 0;
     }
 }
@@ -281,28 +291,28 @@ typedef struct ExportedFunc {
 } ExportedFunc;
 
 ExportedFunc FUNCS[] = {
-        {"env", "debug",                (void *) exported_debug},
-        {"env", "flush",                (void *) exported_flush},
+    {"env", "debug",                (void *) exported_debug},
+    {"env", "flush",                (void *) exported_flush},
 
-        {"env", "storage_write",        (void *) exported_write},
-        {"env", "storage_value_size",   (void *) exported_get_value_size},
-        {"env", "storage_read",         (void *) exported_read},
-        {"env", "storage_reset",        (void *) exported_reset},
+    {"env", "storage_write",        (void *) exported_write},
+    {"env", "storage_value_size",   (void *) exported_get_value_size},
+    {"env", "storage_read",         (void *) exported_read},
+    {"env", "storage_reset",        (void *) exported_reset},
 
-        {"env", "get_tx_raw_size",      (void *) exported_get_tx_raw_size},
-        {"env", "get_tx_raw",           (void *) exported_get_tx_raw},
+    {"env", "get_tx_raw_size",      (void *) exported_get_tx_raw_size},
+    {"env", "get_tx_raw",           (void *) exported_get_tx_raw},
 
-        {"env", "get_args_raw_size",    (void *) exported_get_args_raw_size},
-        {"env", "get_args_raw",         (void *) exported_get_args_raw},
+    {"env", "get_args_raw_size",    (void *) exported_get_args_raw_size},
+    {"env", "get_args_raw",         (void *) exported_get_args_raw},
 
-        {"env", "get_balance_raw_size", (void *) exported_get_balance_raw_size},
-        {"env", "get_balance_raw",      (void *) exported_get_balance_raw},
+    {"env", "get_balance_raw_size", (void *) exported_get_balance_raw_size},
+    {"env", "get_balance_raw",      (void *) exported_get_balance_raw},
 
-        {"env", "set_return",           (void *) exported_set_return},
+    {"env", "set_return",           (void *) exported_set_return},
 
-        {"env", "emit_tx",              (void *) exported_emit_tx},
+    {"env", "emit_tx",              (void *) exported_emit_tx},
 
-        {NULL, NULL, NULL},
+    {NULL, NULL, NULL},
 };
 
 bool resolvesym(char *module, char *name, void **val, char **err) {

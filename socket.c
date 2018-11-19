@@ -12,7 +12,8 @@ ssize_t socket_readall(int sock, uint8_t *buffer, size_t len) {
         ptr += n;
         len -= n;
     }
-    if (n == 0) { debug("readall n==0");
+    if (n == 0) {
+        debug("readall n==0");
     }
     return actual_len;
 }
@@ -26,7 +27,8 @@ ssize_t socket_writeall(int sock, uint8_t *buffer, size_t len) {
         ptr += n;
         len -= n;
     }
-    if (n == 0) { debug("writeall n==0");
+    if (n == 0) {
+        debug("writeall n==0");
     }
     return actual_len;
 }
@@ -61,13 +63,15 @@ in_message *message_read(int socket) {
     ssize_t l, len, seq;
 
     l = socket_readall(socket, (uint8_t *) &len, 4);
-    if (l != 4) { warn("Unable to read msg len\n");
+    if (l != 4) {
+        warn("Unable to read msg len\n");
         return NULL;
     }
     len = ntohl((uint32_t)len);
     len -= 4;
     l = socket_readall(socket, (uint8_t *) &seq, 4);
-    if (l != 4) { warn("Unable to read msg seq\n");
+    if (l != 4) {
+        warn("Unable to read msg seq\n");
         return NULL;
     }
     seq = ntohl((uint32_t)seq);
@@ -77,7 +81,8 @@ in_message *message_read(int socket) {
     msg->seq = (uint32_t)seq;
 
     l = socket_readall(socket, (uint8_t *) msgpack_unpacker_buffer(msg->unp), (size_t)len);
-    if (l != len) { warn("Unable to read msg body\n");
+    if (l != len) {
+        warn("Unable to read msg body\n");
         in_message_free(msg);
         return NULL;
     }
@@ -86,14 +91,15 @@ in_message *message_read(int socket) {
     msgpack_unpack_return ret = msgpack_unpacker_next(msg->unp, &msg->und);
 
     switch (ret) {
-        case MSGPACK_UNPACK_SUCCESS:
-        case MSGPACK_UNPACK_EXTRA_BYTES:
-            msg->data = &msg->und.data;debug("Read message seq %d\n", msg->seq);
-            return msg;
-        case MSGPACK_UNPACK_CONTINUE:
-        case MSGPACK_UNPACK_PARSE_ERROR:
-        case MSGPACK_UNPACK_NOMEM_ERROR:
-            return NULL;
+    case MSGPACK_UNPACK_SUCCESS:
+    case MSGPACK_UNPACK_EXTRA_BYTES:
+        msg->data = &msg->und.data;
+        debug("Read message seq %d\n", msg->seq);
+        return msg;
+    case MSGPACK_UNPACK_CONTINUE:
+    case MSGPACK_UNPACK_PARSE_ERROR:
+    case MSGPACK_UNPACK_NOMEM_ERROR:
+        return NULL;
     }
     return NULL;
 }

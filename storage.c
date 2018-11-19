@@ -54,7 +54,8 @@ bool storage_read(storage_item **s, size_t key_size, uint8_t *key, size_t value_
     e = sglib_hashed_storage_item_find_member(s, &l);
     free(l.key);
     if (e && e->value_size == value_size) {
-        memcpy((char *) value, (char *) e->value, e->value_size);debug("Storage read: ");
+        memcpy((char *) value, (char *) e->value, e->value_size);
+        debug("Storage read: ");
         storage_item_print(e);
         return true;
     } else {
@@ -100,7 +101,8 @@ bool storage_write(storage_item **s, size_t key_size, uint8_t *key, size_t value
         free(e->value);
         e->value = malloc(value_size);
         memcpy((char *) e->value, (char *) value, value_size);
-        e->value_size = value_size;debug("Storage update: ");
+        e->value_size = value_size;
+        debug("Storage update: ");
         storage_item_print(e);
     } else {
         e = calloc(1, sizeof(storage_item));
@@ -110,7 +112,8 @@ bool storage_write(storage_item **s, size_t key_size, uint8_t *key, size_t value
         e->value_size = value_size;
         e->value = malloc(e->value_size);
         memcpy((char *) e->value, (char *) value, e->value_size);
-        sglib_hashed_storage_item_add(s, e);debug("Storage write: ");
+        sglib_hashed_storage_item_add(s, e);
+        debug("Storage write: ");
         storage_item_print(e);
     }
 
@@ -125,11 +128,13 @@ bool storage_load(storage_item **s, msgpack_object *obj) {
     msgpack_unpacked_init(&unp);
 
     ret = msgpack_unpack_next(&unp, obj->via.bin.ptr, obj->via.bin.size, NULL);
-    if (ret != MSGPACK_UNPACK_SUCCESS) { debug("State unpacking error\n");
+    if (ret != MSGPACK_UNPACK_SUCCESS) {
+        debug("State unpacking error\n");
         return false;
     }
     obj = &unp.data;
-    if (obj == NULL || obj->type != MSGPACK_OBJECT_MAP) { warn("Invalid state\n");
+    if (obj == NULL || obj->type != MSGPACK_OBJECT_MAP) {
+        warn("Invalid state\n");
         return false;
     }
 
@@ -146,7 +151,8 @@ bool storage_load(storage_item **s, msgpack_object *obj) {
 bool storage_save(storage_item **s, msgpack_packer *pk) {
     storage_item *e;
     struct sglib_hashed_storage_item_iterator it;
-    size_t len = storage_size(s);debug("Saving storage (%zu)\n", len);
+    size_t len = storage_size(s);
+    debug("Saving storage (%zu)\n", len);
 
     msgpack_pack_map(pk, len);
     for (e = sglib_hashed_storage_item_it_init(&it, s); e != NULL; e = sglib_hashed_storage_item_it_next(&it)) {

@@ -38,18 +38,18 @@ int main(int argc, char **argv) {
 
     while ((c = getopt(argc, argv, "h:p:l:")) != -1) {
         switch (c) {
-            case 'h':
-                host = optarg;
-                break;
-            case 'p':
-                port = optarg;
-                break;
-            case 'l':
-                freopen(optarg, "w", stderr);
-                break;
-            default:
-                fprintf(stderr, "Usage: %s [-h host] [-p port] [-l logfile]\n", argv[0]);
-                exit(1);
+        case 'h':
+            host = optarg;
+            break;
+        case 'p':
+            port = optarg;
+            break;
+        case 'l':
+            freopen(optarg, "w", stderr);
+            break;
+        default:
+            fprintf(stderr, "Usage: %s [-h host] [-p port] [-l logfile]\n", argv[0]);
+            exit(1);
         }
     }
 
@@ -80,13 +80,15 @@ int main(int argc, char **argv) {
 
     if (msg && msg->seq == 1) {
         msgpack_object *v = msgpack_get_value(msg->data, NULL); // TODO: check hello reply
-        if (msgpack_strcmp(v, "hello") == 0) { debug("Hello ok\n");
+        if (msgpack_strcmp(v, "hello") == 0) {
+            debug("Hello ok\n");
             in_message_free(msg);
 
             while ((msg = message_read(cfg->socket))) {
                 if ((msg->seq & 0x01) == 0) {
                     msgpack_object *cmd = msgpack_get_value(msg->data, NULL);
-                    if (cmd == NULL) { warn("Message without command\n");
+                    if (cmd == NULL) {
+                        warn("Message without command\n");
                         continue;
                     }
                     if (msgpack_strcmp(cmd, "exec") == 0) {
@@ -96,12 +98,14 @@ int main(int argc, char **argv) {
                         in_message_free(msg);
                         break;
                     }
-                } else { warn("unexpected response\n");
+                } else {
+                    warn("unexpected response\n");
                 }
                 in_message_free(msg);
             }
 
-        } else { debug("Hello error\n");
+        } else {
+            debug("Hello error\n");
             in_message_free(msg);
         }
     } else {

@@ -264,20 +264,20 @@ msgpack_object *msgpack_get_value(msgpack_object *obj, char *key) {
 
 size_t msgpack_sizeof(msgpack_object *obj) {
     switch (obj->type) {
-        case MSGPACK_OBJECT_NIL:
-            return 0;
-        case MSGPACK_OBJECT_BOOLEAN:
-            return sizeof(bool);
-        case MSGPACK_OBJECT_POSITIVE_INTEGER:
-            return sizeof(uint64_t);
-        case MSGPACK_OBJECT_NEGATIVE_INTEGER:
-            return sizeof(int64_t);
-        case MSGPACK_OBJECT_STR:
-            return obj->via.str.size;
-        case MSGPACK_OBJECT_BIN:
-            return obj->via.bin.size;
-        default:
-            return 0;
+    case MSGPACK_OBJECT_NIL:
+        return 0;
+    case MSGPACK_OBJECT_BOOLEAN:
+        return sizeof(bool);
+    case MSGPACK_OBJECT_POSITIVE_INTEGER:
+        return sizeof(uint64_t);
+    case MSGPACK_OBJECT_NEGATIVE_INTEGER:
+        return sizeof(int64_t);
+    case MSGPACK_OBJECT_STR:
+        return obj->via.str.size;
+    case MSGPACK_OBJECT_BIN:
+        return obj->via.bin.size;
+    default:
+        return 0;
     }
 }
 
@@ -287,47 +287,47 @@ void msgpack_pack(msgpack_packer *pk, msgpack_object *value) {
         return;
     }
     switch (value->type) {
-        case MSGPACK_OBJECT_NIL:
-            msgpack_pack_nil(pk);
-            break;
-        case MSGPACK_OBJECT_BOOLEAN:
-            if (value->via.boolean)
-                msgpack_pack_true(pk);
-            else
-                msgpack_pack_false(pk);
-            break;
-        case MSGPACK_OBJECT_POSITIVE_INTEGER:
-            msgpack_pack_uint64(pk, value->via.u64);
-            break;
-        case MSGPACK_OBJECT_NEGATIVE_INTEGER:
-            msgpack_pack_int64(pk, value->via.i64);
-            break;
-        case MSGPACK_OBJECT_STR:
-            msgpack_pack_str(pk, value->via.str.size);
-            msgpack_pack_str_body(pk, value->via.str.ptr, value->via.str.size);
-            break;
-        case MSGPACK_OBJECT_BIN:
-            msgpack_pack_bin(pk, value->via.bin.size);
-            msgpack_pack_bin_body(pk, value->via.bin.ptr, value->via.bin.size);
-            break;
-        case MSGPACK_OBJECT_EXT:
-            msgpack_pack_ext(pk, value->via.ext.size, value->via.ext.type);
-            msgpack_pack_ext_body(pk, value->via.ext.ptr, value->via.ext.size);
-            break;
-        case MSGPACK_OBJECT_ARRAY:
-            msgpack_pack_array(pk, value->via.array.size);
-            for (unsigned i = 0; i < value->via.array.size; i++)
-                msgpack_pack(pk, &value->via.array.ptr[i]);
-            break;
-        case MSGPACK_OBJECT_MAP:
-            msgpack_pack_map(pk, value->via.map.size);
-            for (unsigned i = 0; i < value->via.map.size; i++) {
-                msgpack_pack(pk, &value->via.map.ptr[i].key);
-                msgpack_pack(pk, &value->via.map.ptr[i].val);
-            }
-            break;
-        default:
-            return;
+    case MSGPACK_OBJECT_NIL:
+        msgpack_pack_nil(pk);
+        break;
+    case MSGPACK_OBJECT_BOOLEAN:
+        if (value->via.boolean)
+            msgpack_pack_true(pk);
+        else
+            msgpack_pack_false(pk);
+        break;
+    case MSGPACK_OBJECT_POSITIVE_INTEGER:
+        msgpack_pack_uint64(pk, value->via.u64);
+        break;
+    case MSGPACK_OBJECT_NEGATIVE_INTEGER:
+        msgpack_pack_int64(pk, value->via.i64);
+        break;
+    case MSGPACK_OBJECT_STR:
+        msgpack_pack_str(pk, value->via.str.size);
+        msgpack_pack_str_body(pk, value->via.str.ptr, value->via.str.size);
+        break;
+    case MSGPACK_OBJECT_BIN:
+        msgpack_pack_bin(pk, value->via.bin.size);
+        msgpack_pack_bin_body(pk, value->via.bin.ptr, value->via.bin.size);
+        break;
+    case MSGPACK_OBJECT_EXT:
+        msgpack_pack_ext(pk, value->via.ext.size, value->via.ext.type);
+        msgpack_pack_ext_body(pk, value->via.ext.ptr, value->via.ext.size);
+        break;
+    case MSGPACK_OBJECT_ARRAY:
+        msgpack_pack_array(pk, value->via.array.size);
+        for (unsigned i = 0; i < value->via.array.size; i++)
+            msgpack_pack(pk, &value->via.array.ptr[i]);
+        break;
+    case MSGPACK_OBJECT_MAP:
+        msgpack_pack_map(pk, value->via.map.size);
+        for (unsigned i = 0; i < value->via.map.size; i++) {
+            msgpack_pack(pk, &value->via.map.ptr[i].key);
+            msgpack_pack(pk, &value->via.map.ptr[i].val);
+        }
+        break;
+    default:
+        return;
     }
 }
 
@@ -339,7 +339,7 @@ void msgpack_repack(msgpack_packer *pk, msgpack_object *value, char *key) {
         msgpack_pack_str_body(pk, key, s);
 
         msgpack_pack(pk, obj);
-    }else{
+    } else {
         debug("No value '%s'\n", key);
     }
 }
