@@ -2239,8 +2239,6 @@ void module_free(Module *m) {
     free(m);
 }
 
-// if entry == NULL,  attempt to invoke 'main' or '_main'
-// Return value of false means exception occured
 bool invoke(Module *m, char *entry, size_t argc, StackValue *argv) {
     int32_t fidx = -1;
     Type *type;
@@ -2252,18 +2250,21 @@ bool invoke(Module *m, char *entry, size_t argc, StackValue *argv) {
     if (entry) {
         fidx = get_export_fidx(m, entry);
     }
-    if (fidx == -1) { warn("Function not found\n");
+    if (fidx == -1) {
+        warn("Function not found\n");
         return false;
     }
     type = m->functions[fidx].type;
 
-    if (argc > 0 && argv == NULL) { warn("Argument count mismatch\n");
+    if (argc > 0 && argv == NULL) {
+        warn("Argument count mismatch\n");
         return false;
     }
 
     // Check and add arguments to the stack
     for (size_t i = 0; i < argc; i++) {
-        if (argv[i].value_type != type->params[i]) { warn("Argument type mismatch\n");
+        if (argv[i].value_type != type->params[i]) {
+            warn("Argument type mismatch\n");
             return false;
         }
     }

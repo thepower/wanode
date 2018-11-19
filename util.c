@@ -333,10 +333,15 @@ void msgpack_pack(msgpack_packer *pk, msgpack_object *value) {
 
 void msgpack_repack(msgpack_packer *pk, msgpack_object *value, char *key) {
     size_t s = strlen(key);
-    msgpack_pack_str(pk, s);
-    msgpack_pack_str_body(pk, key, s);
+    msgpack_object *obj = msgpack_get_value(value, key);
+    if (obj) {
+        msgpack_pack_str(pk, s);
+        msgpack_pack_str_body(pk, key, s);
 
-    msgpack_pack(pk, msgpack_get_value(value, key));
+        msgpack_pack(pk, obj);
+    }else{
+        debug("No value '%s'\n", key);
+    }
 }
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import inspect
 import msgpack
@@ -148,7 +148,7 @@ class VM:
 class TestStringMethods(unittest.TestCase):
   def setUp(self):
     self.vm = VM()
-    self.code = read("../rust/test-pair/target/wasm32-unknown-unknown/release/test_pair.wasm.lz4")
+    self.code = read("/tmp/test_pair.wasm")
 
   def tearDown(self):
     self.vm.close()
@@ -156,26 +156,27 @@ class TestStringMethods(unittest.TestCase):
   def test_exec(self):
     vm = self.vm
     vm.state = {}
-    ret = vm.send_tx(
-        vm.make_ledger(code=self.code),
-        vm.make_tx( kind=18,
-                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    call=['init', []],
-                    code=self.code))
+    # ret = vm.send_tx(
+        # vm.make_ledger(code=self.code),
+        # vm.make_tx( kind=18,
+                    # payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    # call=['init', [b'fromaddr']],
+                    # code=self.code))
 
     ret = vm.send_tx(
         vm.make_ledger(code=self.code),
         vm.make_tx( kind=16,
                     payload=[[1, "SK", 5000], [3, "GASK", 1000]],
                     call=['save_data', [{"q1": "a1", "q2": "a2"}],],
-                    code=self.code))
+                    )
+        )
 
-    ret = vm.send_tx(
-        vm.make_ledger(code=self.code),
-        vm.make_tx( kind=16,
-                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    call=['save_data', [{"q1": "a2", "q2": "a2"}],],
-                    code=self.code))
+    # ret = vm.send_tx(
+        # vm.make_ledger(code=self.code),
+        # vm.make_tx( kind=16,
+                    # payload=[[1, "SK", 5000], [3, "GASK", 1000]],
+                    # call=['save_data', [{"q1": "a2", "q2": "a2"}],],
+                    # code=self.code))
 
     self.assertEqual(ret[None], 'exec', 'Non-Exec reply')
     self.assertNotIn('err', ret, "Error in response")

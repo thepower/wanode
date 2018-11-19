@@ -96,11 +96,12 @@ void tx_repack(Module *m) {
 
     msgpack_pack_map(pk, 5);
 
-    msgpack_repack(pk, tx, "p");
+    msgpack_repack(pk, tx, "k");
     msgpack_repack(pk, tx, "f");
     msgpack_repack(pk, tx, "to");
-    msgpack_repack(pk, tx, "k");
+    msgpack_repack(pk, tx, "p");
     msgpack_repack(pk, tx, "t");
+    msgpack_repack(pk, tx, "e");
 
     msgpack_packer_free(pk);
 }
@@ -206,8 +207,9 @@ void balance_repack(Module *m) {
 
     debug("Balance repacked = ");
 
-    for (size_t c = 0; c < d->balance_repack->size; ++c)debug_raw("\\x%02X", d->balance_repack->data[c]);debug_raw(
-            "\n");
+    for (size_t c = 0; c < d->balance_repack->size; ++c)
+        debug_raw("\\x%02X", d->balance_repack->data[c]);
+    debug_raw("\n");
 }
 
 void exported_get_balance_raw_size(Module *m) {
@@ -258,6 +260,19 @@ void exported_set_return(Module *m) {
     }
 }
 
+void exported_emit_tx(Module *m) {
+    //exec_data *d = (exec_data *) m->extra;
+    size_t len = STACK(1);
+    char *tx = (char *) get_mem_ptr(m, STACK(0), len);
+    m->sp -= 2;
+
+    if (tx) {
+        for (size_t c = 0; c < len; ++c)
+            debug_raw("\\x%02X", tx[c]);
+        debug_raw("\n");
+    }
+}
+
 
 typedef struct ExportedFunc {
     char *module;
@@ -272,7 +287,7 @@ ExportedFunc FUNCS[] = {
         {"env", "storage_write",        (void *) exported_write},
         {"env", "storage_value_size",   (void *) exported_get_value_size},
         {"env", "storage_read",         (void *) exported_read},
-        {"env", "storage_reset",         (void *) exported_reset},
+        {"env", "storage_reset",        (void *) exported_reset},
 
         {"env", "get_tx_raw_size",      (void *) exported_get_tx_raw_size},
         {"env", "get_tx_raw",           (void *) exported_get_tx_raw},
@@ -285,45 +300,24 @@ ExportedFunc FUNCS[] = {
 
         {"env", "set_return",           (void *) exported_set_return},
 
+        {"env", "emit_tx",              (void *) exported_emit_tx},
+
         {NULL, NULL, NULL},
-};
-
-typedef struct ExportedGlobal {
-    char *module;
-    char *name;
-    StackValue value;
-} ExportedGlobal;
-
-ExportedGlobal GLOBALS[] = {
-        {"env", "ext_x", {I32, {.int32 = 0x3e8}}},
-        {"env", "ext_y", {I32, {.int32 = 0x27e}}},
-        {NULL, NULL,     {I32, {.int32 = 0}}},
 };
 
 bool resolvesym(char *module, char *name, void **val, char **err) {
     ExportedFunc *f = &FUNCS[0];
 
     debug("Resolving %s.%s\n", module, name);
-
     while (f->module || f->name) {
         if (!f->module || !strcmp(f->module, module)) {
-            if (f->name && !strcmp(f->name, name)) { debug("%s.%s resolved to function\n", module, name);
+            if (f->name && !strcmp(f->name, name)) {
+                debug("%s.%s resolved to function\n", module, name);
                 *val = f->ptr;
                 return true;
             }
         }
         f++;
-    }
-    ExportedGlobal *g = &GLOBALS[0];
-
-    while (g->module || g->name) {
-        if (!g->module || !strcmp(g->module, module)) {
-            if (g->name && !strcmp(g->name, name)) { debug("%s.%s resolved to global\n", module, name);
-                *val = &g->value.value;
-                return true;
-            }
-        }
-        g++;
     }
     *err = "Symbol not found";
     return false;

@@ -15,9 +15,14 @@ SGLIB_DEFINE_LIST_FUNCTIONS(storage_item, storage_item_cmp, next)
 SGLIB_DEFINE_HASHED_CONTAINER_FUNCTIONS(storage_item, HASH_TAB_SIZE, storage_item_hash)
 
 void storage_item_print(storage_item *s) {
-    (void) s;debug_raw("k = ");
-    for (size_t c = 0; c < s->key_size; ++c)debug_raw("%02X", s->key[c]);debug_raw("; v = ");
-    for (size_t c = 0; c < s->value_size; ++c)debug_raw("%02X", s->value[c]);debug_raw("\n");
+    (void) s;
+    debug_raw("k = ");
+    for (size_t c = 0; c < s->key_size; ++c)
+        debug_raw("%02X", s->key[c]);
+    debug_raw("; v = ");
+    for (size_t c = 0; c < s->value_size; ++c)
+        debug_raw("%02X", s->value[c]);
+    debug_raw("\n");
 }
 
 
