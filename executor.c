@@ -28,6 +28,14 @@ void exec_data_destroy(exec_data *d) {
     msgpack_unpacked_destroy(&d->utx);
     msgpack_unpacked_destroy(&d->uledger);
     msgpack_unpacked_destroy(&d->uret);
+
+    struct tx_item *l;
+    struct sglib_tx_item_iterator it;
+    for(l=sglib_tx_item_it_init(&it,d->txs); l!=NULL; l=sglib_tx_item_it_next(&it)) {
+        free(l->tx);
+        free(l);
+    }
+    d->txs = NULL;
 }
 
 bool parse_exec_data(in_message *msg, exec_data *d) {
@@ -330,7 +338,13 @@ void do_exec(app_state *cfg, in_message *msg) {
 
                 msgpack_pack_str(&pk, 3);
                 msgpack_pack_str_body(&pk, "txs", 3);
-                msgpack_pack_array(&pk, 0);
+                msgpack_pack_array(&pk, sglib_tx_item_len(d.txs));
+                struct tx_item *l;
+                struct sglib_tx_item_iterator it;
+                for(l=sglib_tx_item_it_init(&it,d.txs); l!=NULL; l=sglib_tx_item_it_next(&it)) {
+                    msgpack_pack_bin(&pk, l->size);
+                    msgpack_pack_bin_body(&pk, l->tx, l->size);
+                }
 
                 msgpack_pack_str(&pk, 3);
                 msgpack_pack_str_body(&pk, "ret", 3);

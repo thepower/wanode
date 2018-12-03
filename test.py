@@ -28,8 +28,8 @@ class VM:
     self.s.bind(('127.0.0.1', 0))
     self.port = self.s.getsockname()[1]
     self.s.listen()
-    #self.sub = subprocess.Popen(["valgrind", "-v", "--leak-check=full", "./wanode", "-p", str(self.port)])
-    self.sub = subprocess.Popen(["./wanode", "-p", str(self.port)])
+    self.sub = subprocess.Popen(["valgrind", "-v", "--leak-check=full", "./wanode", "-p", str(self.port)])
+    #self.sub = subprocess.Popen(["./wanode", "-p", str(self.port)])
     conn, addr = self.s.accept()
     self.c = conn
     self.seq = 0
@@ -148,7 +148,7 @@ class VM:
 class TestStringMethods(unittest.TestCase):
   def setUp(self):
     self.vm = VM()
-    self.code = read("/tmp/test_pair.wasm")
+    self.code = read("/tmp/emit_tx.wasm")
 
   def tearDown(self):
     self.vm.close()
@@ -166,8 +166,8 @@ class TestStringMethods(unittest.TestCase):
     ret = vm.send_tx(
         vm.make_ledger(code=self.code),
         vm.make_tx( kind=16,
-                    payload=[[1, "SK", 5000], [3, "GASK", 1000]],
-                    call=['save_data', [{"q1": "a1", "q2": "a2"}],],
+                    payload=[[1, b"SK", 5000], [3, b"GASK", 1000]],
+                    call=['test', [],],
                     )
         )
 

@@ -2,6 +2,7 @@
 
 #include "global.h"
 #include "storage.h"
+#include "tx.h"
 
 typedef struct {
     msgpack_object *ledger;
@@ -32,6 +33,8 @@ typedef struct {
     char *ret_copy;
     msgpack_object *ret;
     msgpack_unpacked uret;
+
+    tx_item *txs;
 } exec_data;
 
 void do_exec(app_state *cfg, in_message *msg);

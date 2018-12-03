@@ -3,6 +3,7 @@
 #include "util.h"
 #include "env.h"
 #include "executor.h"
+#include "tx.h"
 
 #define STACK(x) (m->stack[m->sp - x].value.uint32)
 
@@ -271,15 +272,17 @@ void exported_set_return(Module *m) {
 }
 
 void exported_emit_tx(Module *m) {
-    //exec_data *d = (exec_data *) m->extra;
+    exec_data *d = (exec_data *) m->extra;
     size_t len = STACK(1);
     char *tx = (char *) get_mem_ptr(m, STACK(0), len);
     m->sp -= 2;
 
     if (tx) {
-        for (size_t c = 0; c < len; ++c)
-            debug_raw("\\x%02X", tx[c]);
-        debug_raw("\n");
+        tx_item *txi = calloc(1, sizeof(tx_item));
+        txi->size = len;
+        txi->tx = malloc(len);
+        memcpy(txi->tx, tx, len);
+        sglib_tx_item_add(&d->txs, txi);
     }
 }
 
