@@ -356,10 +356,10 @@ void do_exec(app_state *cfg, in_message *msg) {
 
                 msgpack_pack_str(&pk, 3);
                 msgpack_pack_str_body(&pk, "gas", 3);
-                msgpack_pack_fix_uint64(&pk, m->gas);
+                msgpack_pack_fix_int64(&pk, m->gas);
             } else {
-                debug("EXEC ERR: %s, gas = %u\n", exception, m->gas);
-                return_err(&pk, m->gas, exception);
+                debug("EXEC ERR: %s, gas = %u\n", m->exception, m->gas);
+                return_err(&pk, m->gas, m->exception);
             }
             module_free(m);
             if (code != (uint8_t*)d.code->via.bin.ptr) {

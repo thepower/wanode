@@ -11,6 +11,7 @@
 // 65536
 #  define BLOCKSTACK_SIZE 0x1000// 4096
 #  define CALLSTACK_SIZE  0x1000// 4096
+#  define EXCEPTION_SIZE  0x1000// 4096
 
 #  define I32       0x7f        // -0x01
 #  define I64       0x7e        // -0x02
@@ -145,15 +146,15 @@ typedef struct Module {
     StackValue stack[STACK_SIZE]; // main operand stack
     int csp;                      // callstack pointer
     Frame callstack[CALLSTACK_SIZE];  // callstack
-    uint32_t gas;
+    int32_t gas;
     void *extra;
+    char exception[EXCEPTION_SIZE];
+    bool terminated;
 } Module;
 
 //
 // Function declarations (Public API)
 //
-
-extern char exception[];
 
 char *value_repr(StackValue *v);
 

@@ -286,6 +286,11 @@ void exported_emit_tx(Module *m) {
     }
 }
 
+void exported_stub(Module *m) {
+    snprintf(m->exception, EXCEPTION_SIZE, "stub_function_called");
+    m->terminated = true;
+}
+
 
 typedef struct ExportedFunc {
     char *module;
@@ -319,6 +324,7 @@ ExportedFunc FUNCS[] = {
 };
 
 bool resolvesym(char *module, char *name, void **val, char **err) {
+    (void) err;
     ExportedFunc *f = &FUNCS[0];
 
     debug("Resolving %s.%s\n", module, name);
@@ -332,6 +338,7 @@ bool resolvesym(char *module, char *name, void **val, char **err) {
         }
         f++;
     }
-    *err = "Symbol not found";
-    return false;
+    debug("%s.%s resolved to stub function\n", module, name);
+    *val = (void*) exported_stub;
+    return true;
 }
