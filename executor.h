@@ -21,6 +21,8 @@ typedef struct {
     char *method;
     msgpack_object *args;
     msgpack_object *gas;
+    msgpack_object *entropy;
+    msgpack_object *mean_time;
 
     storage_item **s;
 

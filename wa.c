@@ -1622,8 +1622,8 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f32)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f32 >= INT32_MAX ||
-                       stack[m->sp].value.f32 < INT32_MIN) {
+            } else if (stack[m->sp].value.f32 >= (float)INT32_MAX ||
+                       stack[m->sp].value.f32 < (float)INT32_MIN) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1634,7 +1634,7 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f32)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f32 >= UINT32_MAX || stack[m->sp].value.f32 <= -1) {
+            } else if (stack[m->sp].value.f32 >= (float)UINT32_MAX || stack[m->sp].value.f32 <= -1) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1645,7 +1645,7 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f64)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f64 > INT32_MAX || stack[m->sp].value.f64 < INT32_MIN) {
+            } else if (stack[m->sp].value.f64 > (double)INT32_MAX || stack[m->sp].value.f64 < INT32_MIN) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1676,8 +1676,8 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f32)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f32 >= INT64_MAX ||
-                       stack[m->sp].value.f32 < INT64_MIN) {
+            } else if (stack[m->sp].value.f32 >= (float)INT64_MAX ||
+                       stack[m->sp].value.f32 < (float)INT64_MIN) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1688,7 +1688,7 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f32)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f32 >= UINT64_MAX || stack[m->sp].value.f32 <= -1) {
+            } else if (stack[m->sp].value.f32 >= (float)UINT64_MAX || stack[m->sp].value.f32 <= -1) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1699,8 +1699,8 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f64)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f64 >= INT64_MAX ||
-                       stack[m->sp].value.f64 < INT64_MIN) {
+            } else if (stack[m->sp].value.f64 >= (double)INT64_MAX ||
+                       stack[m->sp].value.f64 < (double)INT64_MIN) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }
@@ -1711,7 +1711,7 @@ bool interpret(Module *m) {
             if (isnan(stack[m->sp].value.f64)) {
                 snprintf(m->exception, EXCEPTION_SIZE, "invalid conversion to integer");
                 return false;
-            } else if (stack[m->sp].value.f64 >= UINT64_MAX || stack[m->sp].value.f64 <= -1) {
+            } else if (stack[m->sp].value.f64 >= (double)UINT64_MAX || stack[m->sp].value.f64 <= -1) {
                 snprintf(m->exception, EXCEPTION_SIZE, "integer overflow");
                 return false;
             }

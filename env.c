@@ -98,7 +98,18 @@ void tx_repack(Module *m) {
     d->tx_repack = msgpack_sbuffer_new();
     msgpack_packer *pk = msgpack_packer_new(d->tx_repack, msgpack_sbuffer_write);
 
-    msgpack_pack_map(pk, 5);
+
+    size_t count = 0;
+    if (msgpack_get_value(tx, "k")) count++;
+    if (msgpack_get_value(tx, "f")) count++;
+    if (msgpack_get_value(tx, "to")) count++;
+    if (msgpack_get_value(tx, "p")) count++;
+    if (msgpack_get_value(tx, "t")) count++;
+    if (msgpack_get_value(tx, "e")) count++;
+    if (msgpack_get_value(tx, "ev")) count++;
+    if (msgpack_get_value(tx, "nb")) count++;
+
+    msgpack_pack_map(pk, count);
 
     msgpack_repack(pk, tx, "k");
     msgpack_repack(pk, tx, "f");
@@ -106,6 +117,8 @@ void tx_repack(Module *m) {
     msgpack_repack(pk, tx, "p");
     msgpack_repack(pk, tx, "t");
     msgpack_repack(pk, tx, "e");
+    msgpack_repack(pk, tx, "ev");
+    msgpack_repack(pk, tx, "nb");
 
     msgpack_packer_free(pk);
 }
@@ -286,6 +299,51 @@ void exported_emit_tx(Module *m) {
     }
 }
 
+void exported_get_entropy_size(Module *m) {
+    exec_data *d = (exec_data *) m->extra;
+
+    m->sp += 1;
+    StackValue *s = &m->stack[m->sp];
+    s->value_type = I32;
+    if (d->entropy) {
+        debug("entropy RAW size = %u\n", d->entropy->via.bin.size);
+        s->value.int32 = (int32_t) d->entropy->via.bin.size;
+    } else {
+        debug("entropy RAW size = 0\n");
+        s->value.int32 = 0;
+    }
+}
+
+void exported_get_entropy(Module *m) {
+    exec_data *d = (exec_data *) m->extra;
+
+    if (d->entropy == NULL) {
+        STACK(0) = 0;
+        return;
+    }
+
+    uint8_t *ptr = get_mem_ptr(m, STACK(0), d->entropy->via.bin.size);
+    if (ptr) {
+        STACK(0) = 1;
+        memcpy(ptr, d->entropy->via.bin.ptr, d->entropy->via.bin.size);
+    }
+}
+
+void exported_get_mean_time(Module *m){
+    exec_data *d = (exec_data *) m->extra;
+
+    m->sp += 1;
+    StackValue *s = &m->stack[m->sp];
+    s->value_type = I64;
+    if (d->mean_time) {
+        debug("mean_time = %zu\n", d->mean_time->via.i64);
+        s->value.int64 = (int64_t) d->mean_time->via.i64;
+    } else {
+        debug("mean_time = 0\n");
+        s->value.int64 = 0;
+    }
+}
+
 void exported_stub(Module *m) {
     snprintf(m->exception, EXCEPTION_SIZE, "stub_function_called");
     m->terminated = true;
@@ -319,6 +377,10 @@ ExportedFunc FUNCS[] = {
     {"env", "set_return",           (void *) exported_set_return},
 
     {"env", "emit_tx",              (void *) exported_emit_tx},
+
+    {"env", "get_entropy_size",     (void *) exported_get_entropy_size},
+    {"env", "get_entropy",          (void *) exported_get_entropy},
+    {"env", "get_mean_time",        (void *) exported_get_mean_time},
 
     {NULL, NULL, NULL},
 };

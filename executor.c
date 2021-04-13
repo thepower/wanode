@@ -46,6 +46,8 @@ bool parse_exec_data(in_message *msg, exec_data *d) {
     if ((msg->seq & 0x01) == 0) {
         if (msgpack_strcmp(msgpack_get_value(msg->data, NULL), "exec") == 0) {
 
+
+
             // Unpack ledger and get stored state
             ledger = msgpack_get_value(msg->data, "ledger");
             if (ledger == NULL || ledger->type != MSGPACK_OBJECT_BIN) {
@@ -210,6 +212,19 @@ bool parse_exec_data(in_message *msg, exec_data *d) {
             }
 
             d->gas = msgpack_get_value(msg->data, "gas");
+            obj = msgpack_get_value(msg->data, "entropy");
+            if( obj == NULL || obj->type != MSGPACK_OBJECT_BIN ){
+                debug("Wrong entropy");
+                return false;
+            }
+            d->entropy = obj;
+            obj = msgpack_get_value(msg->data, "mean_time");
+            if( obj == NULL || obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER ){
+                debug("Wrong mean_time");
+                return false;
+            }
+            d->mean_time = obj;
+
 
             return true;
         } else {
