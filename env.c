@@ -105,7 +105,7 @@ void tx_repack(Module *m) {
     if (msgpack_get_value(tx, "to")) count++;
     if (msgpack_get_value(tx, "p")) count++;
     if (msgpack_get_value(tx, "t")) count++;
-    if (msgpack_get_value(tx, "e")) count++;
+    /*if (msgpack_get_value(tx, "e")) count++;*/
     if (msgpack_get_value(tx, "ev")) count++;
     if (msgpack_get_value(tx, "nb")) count++;
 
@@ -116,7 +116,7 @@ void tx_repack(Module *m) {
     msgpack_repack(pk, tx, "to");
     msgpack_repack(pk, tx, "p");
     msgpack_repack(pk, tx, "t");
-    msgpack_repack(pk, tx, "e");
+    /*msgpack_repack(pk, tx, "e");*/
     msgpack_repack(pk, tx, "ev");
     msgpack_repack(pk, tx, "nb");
 

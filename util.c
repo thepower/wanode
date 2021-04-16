@@ -237,10 +237,11 @@ void _dump_object(msgpack_object *obj) {
 int32_t msgpack_strcmp(msgpack_object *s1, char *s2) {
     if (s1 == NULL || s2 == NULL)
         return -1;
-    if (s1->type == MSGPACK_OBJECT_STR)
-        return strncmp(s1->via.str.ptr, s2, s1->via.str.size);
-    if (s1->type == MSGPACK_OBJECT_BIN)
-        return strncmp(s1->via.bin.ptr, s2, s1->via.bin.size);
+    size_t len = strlen(s2);
+    if (s1->type == MSGPACK_OBJECT_STR && s1->via.str.size == len)
+        return strncmp(s1->via.str.ptr, s2, len);
+    if (s1->type == MSGPACK_OBJECT_BIN && s1->via.bin.size == len)
+        return strncmp(s1->via.bin.ptr, s2, len);
     return -1;
 }
 
