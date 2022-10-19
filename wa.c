@@ -614,7 +614,7 @@ bool interpret(Module *m) {
 
     uint32_t cur_pc;
     //Block *block;
-    uint32_t arg, val, fidx, tidx, cond, depth, count;
+    uint32_t arg, val, fidx, tidx __attribute__((__unused__)), cond, depth, count;
     uint32_t flags, offset, addr;
     uint8_t *maddr, *mem_end;
     uint32_t *depths;
@@ -796,7 +796,7 @@ bool interpret(Module *m) {
                 // pointer size) so get the actual (sized) index
                 trace("      - entries: %p, original val: 0x%x, new val: 0x%x\n",
                       (void *) m->table.entries, val, (uint32_t) m->table.entries - val);
-                val = val - (uint32_t) m->table.entries;
+                val = val - (unsigned long) m->table.entries;
             }
             if (val >= m->table.maximum) {
                 snprintf(m->exception, EXCEPTION_SIZE, "undefined element 0x%x", val);
